@@ -3,6 +3,9 @@
   "owner": {
     "name": "Christophe Bellec"
   },
+  "metadata": {
+    "description": "Agentic delivery pipeline for Claude Code: Monday.com epics and tickets, implementation, AI code review, Playwright QA, AWS and GitHub deployment."
+  },
   "plugins": [
     {
       "name": "agentic",
