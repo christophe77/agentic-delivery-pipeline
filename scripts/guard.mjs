@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Garde-fou PreToolUse : empêche l'agent de lire des fichiers de secrets,
-// d'écrire un secret dans le code, ou de lancer des commandes sensibles.
-// Exit 2 = appel bloqué, le message stderr est renvoyé à Claude.
+// PreToolUse guard: prevents the agent from reading secret files,
+// writing a secret into the code, or running sensitive commands.
+// Exit 2 = call blocked, the stderr message is sent back to Claude.
 
 import { readFileSync } from "node:fs";
 
@@ -16,30 +16,30 @@ const SECRET_FILES = [
 ];
 
 const SECRET_CONTENT = [
-  ["clé d'accès AWS", /\b(AKIA|ASIA)[0-9A-Z]{16}\b/],
-  ["clé Anthropic", /\bsk-ant-[A-Za-z0-9_-]{20,}/],
-  ["token GitHub", /\b(ghp|gho|ghs|ghu|ghr)_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}/],
-  ["clé Stripe live", /\b(sk|rk)_live_[A-Za-z0-9]{20,}/],
-  ["token Slack", /\bxox[abposr]-[A-Za-z0-9-]{10,}/],
-  ["clé privée", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
+  ["AWS access key", /\b(AKIA|ASIA)[0-9A-Z]{16}\b/],
+  ["Anthropic key", /\bsk-ant-[A-Za-z0-9_-]{20,}/],
+  ["GitHub token", /\b(ghp|gho|ghs|ghu|ghr)_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{40,}/],
+  ["Stripe live key", /\b(sk|rk)_live_[A-Za-z0-9]{20,}/],
+  ["Slack token", /\bxox[abposr]-[A-Za-z0-9-]{10,}/],
+  ["private key", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ["JWT", /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
 ];
 
 const DANGEROUS_COMMANDS = [
-  ["lecture d'un fichier .env", /\b(cat|type|more|less|head|tail|Get-Content|gc|bat)\b[^|;&]*\.env\b(?!\.(example|sample|template))/i],
-  ["dump des variables d'environnement", /(^|[;&|]\s*)(printenv|env|set|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)\s*($|[;&|])/i],
-  ["configuration d'identifiants AWS", /\baws\s+(configure|sts\s+get-session-token|iam\s+create-access-key)\b/i],
-  ["déploiement production manuel", /\b(cdk\s+deploy|terraform\s+apply|serverless\s+deploy|sam\s+deploy)\b[^\n]*\bprod/i],
-  ["profil AWS production", /--profile[= ]\S*prod/i],
-  ["modification des secrets GitHub", /\bgh\s+secret\s+(set|delete)\b/i],
-  ["push forcé", /\bgit\s+push\b[^\n]*\s(--force|-f)(\s|$)/i],
-  ["push direct sur la branche principale", /\bgit\s+push\b[^\n]*\s(\S+:)?(main|master)(\s|$)/i],
+  ["reading a .env file", /\b(cat|type|more|less|head|tail|Get-Content|gc|bat)\b[^|;&]*\.env\b(?!\.(example|sample|template))/i],
+  ["dumping environment variables", /(^|[;&|]\s*)(printenv|env|set|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)\s*($|[;&|])/i],
+  ["configuring AWS credentials", /\baws\s+(configure|sts\s+get-session-token|iam\s+create-access-key)\b/i],
+  ["manual production deployment", /\b(cdk\s+deploy|terraform\s+apply|serverless\s+deploy|sam\s+deploy)\b[^\n]*\bprod/i],
+  ["production AWS profile", /--profile[= ]\S*prod/i],
+  ["modifying GitHub secrets", /\bgh\s+secret\s+(set|delete)\b/i],
+  ["force push", /\bgit\s+push\b[^\n]*\s(--force|-f)(\s|$)/i],
+  ["direct push to the main branch", /\bgit\s+push\b[^\n]*\s(\S+:)?(main|master)(\s|$)/i],
 ];
 
 function block(reason) {
   process.stderr.write(
-    `[agentic guard] Bloqué : ${reason}. Les secrets restent hors de portée de l'agent ` +
-      `(GitHub Secrets, OIDC AWS, variables d'environnement). Demande à l'utilisateur d'agir lui-même si nécessaire.\n`
+    `[agentic guard] Blocked: ${reason}. Secrets stay out of the agent's reach ` +
+      `(GitHub Secrets, AWS OIDC, environment variables). Ask the user to do it themselves if needed.\n`
   );
   process.exit(2);
 }
@@ -48,7 +48,7 @@ let input;
 try {
   input = JSON.parse(readFileSync(0, "utf8"));
 } catch {
-  process.exit(0); // entrée illisible : on ne bloque pas
+  process.exit(0); // unreadable input: do not block
 }
 
 const tool = input.tool_name ?? "";
@@ -56,8 +56,10 @@ const args = input.tool_input ?? {};
 
 if (["Read", "Edit", "Write", "MultiEdit"].includes(tool)) {
   const path = String(args.file_path ?? "");
-  const hit = SECRET_FILES.find((re) => re.test(path));
-  if (hit) block(`accès au fichier sensible ${path.split(/[\\/]/).pop()}`);
+  // Workflow files (e.g. secret-scan.yml) only reference secrets by name: never blocked.
+  const isWorkflow = /(^|[\\/])\.github[\\/]workflows[\\/][^\\/]+\.ya?ml$/i.test(path);
+  const hit = !isWorkflow && SECRET_FILES.find((re) => re.test(path));
+  if (hit) block(`access to the sensitive file ${path.split(/[\\/]/).pop()}`);
 }
 
 if (["Edit", "Write", "MultiEdit"].includes(tool)) {
@@ -65,7 +67,7 @@ if (["Edit", "Write", "MultiEdit"].includes(tool)) {
     .filter(Boolean)
     .join("\n");
   for (const [label, re] of SECRET_CONTENT) {
-    if (re.test(text)) block(`le contenu écrit ressemble à un(e) ${label}`);
+    if (re.test(text)) block(`the written content looks like a ${label}`);
   }
 }
 

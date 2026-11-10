@@ -1,23 +1,23 @@
-# .agentic/pipeline.yml : service C# / .NET (ex. service Windows
-# ou agent embarqué) publié en GitHub Release, avec un runner Windows.
-# Aucun secret dans ce fichier.
+# .agentic/pipeline.yml: C# / .NET service (e.g. a Windows service
+# or an embedded agent) published as a GitHub Release, on a Windows runner.
+# No secrets in this file.
 version: 1
-project: mon-service-dotnet
+project: my-dotnet-service
 
 monday:
   board_id: "0000000000"
   tickets_as: subitems
   groups:
-    epics: Épics
+    epics: Epics
     backlog: Backlog
   columns:
     status: status
   statuses:
-    todo: À faire
-    in_progress: En cours
-    review: En revue
-    qa_passed: QA OK
-    done: Terminé
+    todo: To do
+    in_progress: Working on it
+    review: In review
+    qa_passed: QA passed
+    done: Done
 
 git:
   base_branch: main
@@ -28,7 +28,7 @@ packages:
     path: .
     stack: dotnet
     dotnet_version: 8.0.x
-    runner: windows-latest        # net8.0-windows ; ubuntu-latest sinon
+    runner: windows-latest        # net8.0-windows; ubuntu-latest otherwise
     commands:
       install: dotnet restore
       lint: dotnet format --verify-no-changes
@@ -41,8 +41,8 @@ packages:
       artifacts: agent-win-x64.zip
       tag_prefix: agent-v
 
-# Pas d'UI : la QA navigateur ne s'applique pas. Les critères d'acceptation
-# sont couverts par les tests d'intégration.
+# No UI, so browser QA does not apply. Acceptance criteria
+# are covered by the integration tests.
 gates:
   epic_approval: true
   production_approval: true

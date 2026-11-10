@@ -1,29 +1,29 @@
-## Pipeline agentique
+## Agentic pipeline
 
-Ce repo utilise le plugin `agentic` (https://github.com/christophe77/agentic-delivery-pipeline).
-Configuration : `.agentic/pipeline.yml`.
+This repo uses the `agentic` plugin (https://github.com/christophe77/agentic-delivery-pipeline).
+Configuration: `.agentic/pipeline.yml`.
 
 ### Cycle
-1. `/agentic:epic <besoin>` : épic dans Monday (validation humaine)
-2. `/agentic:tickets <id épic>` : tickets en tranches verticales (validation humaine)
-3. `/agentic:implement <id ticket>` : branche, code, tests, PR
-4. `/agentic:review <PR>` : revue locale ; la CI relance une revue à chaque push
-5. Merge : **humain**
-6. Déploiement staging automatique, puis `/agentic:qa` (CI)
-7. `/agentic:release prepare` : déploiement production (approbation GitHub requise)
-8. `/agentic:release close` : tickets Monday en Terminé
+1. `/agentic:epic <need>`: epic in Monday (human approval)
+2. `/agentic:tickets <epic id>`: tickets as vertical slices (human approval)
+3. `/agentic:implement <ticket id>`: branch, code, tests, PR
+4. `/agentic:review <PR>`: local review; CI runs a new review on every push
+5. Merge: **human**
+6. Automatic staging deployment, then `/agentic:qa` (CI)
+7. `/agentic:release prepare`: production deployment (GitHub approval required)
+8. `/agentic:release close`: Monday tickets moved to Done
 
 ### Conventions
-- Branches : `{type}/{item_id}-{slug}` (ex. `feat/1234567890-export-csv`)
-- Commits conventionnels, pied `Monday: #<item_id>`
-- Une PR = un ticket
-- Définition de « fini » : critères d'acceptation testés, lint/tests/build verts, revue sans bloquant, QA OK en staging
+- Branches: `{type}/{item_id}-{slug}` (e.g. `feat/1234567890-export-csv`)
+- Conventional commits, with a `Monday: #<item_id>` footer
+- One PR = one ticket
+- Definition of done: acceptance criteria tested, lint/tests/build green, review with no blocker, QA passed on staging
 
-### Commandes du projet
-<!-- reprises de .agentic/pipeline.yml par /agentic:pipeline-init -->
+### Project commands
+<!-- copied from .agentic/pipeline.yml by /agentic:pipeline-init -->
 
-### Sécurité (non négociable)
-- Aucun secret dans le repo : variables d'environnement, GitHub Secrets, AWS SSM / Secrets Manager, user-secrets .NET.
-- Seuls les `.env.example` avec valeurs factices sont versionnés.
-- L'agent ne lit pas les fichiers `.env`, ne déploie pas en production lui-même et ne pousse pas sur `main`.
-- AWS uniquement via OIDC depuis GitHub Actions.
+### Security (non-negotiable)
+- No secrets in the repo: environment variables, GitHub Secrets, AWS SSM / Secrets Manager, .NET user-secrets.
+- Only `.env.example` files with dummy values are versioned.
+- The agent does not read `.env` files, does not deploy to production itself and does not push to `main`.
+- AWS only through OIDC from GitHub Actions.

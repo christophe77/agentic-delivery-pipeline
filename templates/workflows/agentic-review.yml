@@ -1,5 +1,5 @@
-# Copié par /agentic:pipeline-init. Revue Claude à l'ouverture et à chaque push d'une PR.
-name: Revue Claude
+# Copied by /agentic:pipeline-init. Claude review when a PR is opened and on every push.
+name: Claude review
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   review:
-    # Pas de revue sur les PR venant de forks (pas d'accès aux secrets, et c'est voulu).
+    # No review on PRs from forks (no access to secrets, by design).
     if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
@@ -21,8 +21,11 @@ jobs:
     uses: christophe77/agentic-delivery-pipeline/.github/workflows/claude-review.yml@v1
     with:
       toolkit-ref: v1
-    # Secrets passés explicitement : `secrets: inherit` ne fonctionne pas
-    # entre comptes/organisations différents (toolkit sur un compte, projet sur un autre).
+      # Workspace mode: sibling repos to provide as context (empty in repo mode).
+      context-repos: ""
+    # Secrets passed explicitly: `secrets: inherit` does not work
+    # across different accounts/organizations (toolkit on one account, project on another).
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CONTEXT_REPOS_TOKEN: ${{ secrets.CONTEXT_REPOS_TOKEN }}

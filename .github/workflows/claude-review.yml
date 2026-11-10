@@ -1,5 +1,5 @@
-# Workflow réutilisable : revue de code par Claude sur chaque PR, avec la
-# skill review et les subagents du plugin (chargés depuis ce toolkit).
+# Reusable workflow: Claude code review on every PR, using the plugin's
+# review skill and subagents (loaded from this toolkit).
 name: agentic-review
 
 on:
@@ -14,10 +14,17 @@ on:
       max-turns:
         type: number
         default: 40
+      context-repos:
+        description: "Workspace mode, sibling repos to clone read-only for context (e.g. my-org/app my-org/firmware)"
+        type: string
+        default: ""
     secrets:
       ANTHROPIC_API_KEY:
         required: false
       CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+      CONTEXT_REPOS_TOKEN:
+        description: "Read-only token (contents:read) for the context-repos repositories, if they are private"
         required: false
 
 jobs:
@@ -35,21 +42,46 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Toolkit agentic
+      - name: Agentic toolkit
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.toolkit-repo }}
           ref: ${{ inputs.toolkit-ref }}
           path: .agentic-toolkit
 
+      # Workspace mode: clone the sibling repos (same branch as the PR if it
+      # exists, otherwise the default branch) to check the other side of contracts.
+      - name: Sibling repos (context)
+        if: inputs.context-repos != ''
+        env:
+          REPOS: ${{ inputs.context-repos }}
+          HEAD_REF: ${{ github.head_ref }}
+          TOKEN: ${{ secrets.CONTEXT_REPOS_TOKEN || github.token }}
+        run: |
+          mkdir -p .agentic-context
+          for repo in $REPOS; do
+            dest=".agentic-context/${repo#*/}"
+            url="https://x-access-token:${TOKEN}@github.com/${repo}.git"
+            if git ls-remote --exit-code --heads "$url" "$HEAD_REF" >/dev/null 2>&1; then
+              git clone -q --depth 1 --branch "$HEAD_REF" "$url" "$dest"
+              echo "$repo: branch $HEAD_REF (likely linked PR)"
+            else
+              git clone -q --depth 1 "$url" "$dest" || { echo "::warning::$repo not accessible"; continue; }
+              echo "$repo: default branch"
+            fi
+            git -C "$dest" remote set-url origin "https://github.com/${repo}.git"
+          done
+
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Utilise la skill `review` du plugin agentic pour relire la PR #${{ github.event.pull_request.number }}
-            du repo ${{ github.repository }}. Tu es en CI : poste les findings confirmés en commentaires
-            inline, puis un commentaire de synthèse. Ne merge pas et n'approuve pas la PR.
+            Use the `review` skill of the agentic plugin to review PR #${{ github.event.pull_request.number }}
+            in the ${{ github.repository }} repo. You are running in CI: post confirmed findings as inline
+            comments, then a summary comment. Do not merge or approve the PR.
+            If the .agentic-context/ folder exists, it contains the workspace's sibling repos
+            (read-only): use them to check shared contracts.
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --max-turns ${{ inputs.max-turns }}

@@ -1,33 +1,41 @@
 ---
 name: review
-description: Revue de code d'une PR ou du diff courant - correction, sécurité, couverture des critères d'acceptation du ticket Monday - avec des subagents en parallèle et vérification de chaque finding. Poste en commentaires inline dans la CI, rapporte en local.
-argument-hint: "[numéro de PR]"
+description: Code review of a PR or the current diff - correctness, security, coverage of the Monday ticket's acceptance criteria - with parallel subagents and verification of every finding. Posts inline comments in CI, reports locally.
+argument-hint: "[PR number]"
 ---
 
-# Revue de code
+# Code review
 
-Entrée : `$ARGUMENTS` = numéro de PR (sinon : diff de la branche courante contre `git.base_branch`).
+Reply to the user in their language (the artifacts you create in Monday, PRs and commits follow the team's language set in CLAUDE.md, default English).
 
-## 1. Rassembler
+Input: `$ARGUMENTS` = PR number (otherwise: diff of the current branch against `git.base_branch`).
 
-- Diff : `gh pr diff <n>` ou `git diff <base>...HEAD`. Description de PR : `gh pr view <n>`.
-- Ticket Monday : ID depuis le nom de branche ou le pied `Monday: #id`. Lis ses critères d'acceptation (MCP Monday si disponible ; en CI sans token Monday, utilise la section « Critères d'acceptation » de la PR).
-- `CLAUDE.md` et `.agentic/pipeline.yml` pour les conventions.
+## 0. Repo or workspace mode
 
-## 2. Analyser en parallèle
+Look for `.agentic/workspace.yml` in the current folder, then in parent folders. In **workspace mode** (see `${CLAUDE_PLUGIN_ROOT}/docs/workspace.md`), the argument can be a Monday ticket ID: find all its PRs (one per repo, same branch) and review them **as a single change**. Also check every affected contract from `contracts`: are both sides consistent (topic names, fields, types, error codes), is the stated compatibility real, is the merge order respected?
 
-Lance ces subagents dans le même message :
-- `reviewer` : bugs, cas limites, régressions, gestion d'erreurs, concurrence, performance évidente, cohérence avec le code voisin.
-- `security-reviewer` : secrets, injections, authz/authn, données sensibles dans les logs, dépendances, IaC.
+In CI, if neighboring repos are cloned into `.agentic-context/`, use them to check the other side of the contracts (read only).
 
-Puis toi-même : chaque critère d'acceptation est-il implémenté **et** testé ?
+## 1. Gather
 
-## 3. Vérifier
+- Diff: `gh pr diff <n>` or `git diff <base>...HEAD`. PR description: `gh pr view <n>`.
+- Monday ticket: ID from the branch name or the `Monday: #id` footer. Read its acceptance criteria (Monday MCP if available; in CI without a Monday token, use the PR's "Acceptance criteria" section).
+- `CLAUDE.md` and `.agentic/pipeline.yml` for conventions.
 
-Pour chaque finding, relis le code réel autour de la ligne et écarte ce qui n'est pas démontrable (scénario concret d'échec requis). Pas de remarques de style que le linter couvre déjà.
+## 2. Analyze in parallel
 
-## 4. Rapporter
+Launch these subagents in the same message:
+- `reviewer`: bugs, edge cases, regressions, error handling, concurrency, obvious performance issues, consistency with nearby code.
+- `security-reviewer`: secrets, injections, authz/authn, sensitive data in logs, dependencies, IaC.
 
-- **En CI** (variable `GITHUB_ACTIONS=true`) : un commentaire inline par finding confirmé (outil de commentaire inline de l'action, ou `gh`), puis un commentaire de synthèse : verdict (OK / changements demandés), findings par gravité, critères couverts / non couverts.
-- **En local** : la même synthèse dans le chat, et propose de corriger.
-- Ne valide jamais la PR et ne merge jamais : le merge reste humain.
+Then yourself: is each acceptance criterion implemented **and** tested?
+
+## 3. Verify
+
+For each finding, reread the actual code around the line and discard anything that cannot be demonstrated (a concrete failure scenario is required). No style remarks already covered by the linter.
+
+## 4. Report
+
+- **In CI** (variable `GITHUB_ACTIONS=true`): one inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
+- **Locally**: the same summary in the chat, and offer to fix.
+- Never approve the PR and never merge: merging stays human.

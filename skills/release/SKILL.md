@@ -1,26 +1,32 @@
 ---
 name: release
-description: Prépare ou clôture une mise en production - liste les PR et tickets Monday livrés depuis la dernière release, rédige les notes de version, déclenche le workflow de déploiement et, après succès, passe les tickets en Done. Ne contourne jamais l'approbation de l'environnement production.
+description: Prepares or closes a production release - lists the PRs and Monday tickets delivered since the last release, writes the release notes, triggers the deployment workflow and, after success, moves the tickets to Done. Never bypasses the production environment approval.
 argument-hint: "[prepare | close] [version]"
 ---
 
 # Release
 
-Entrée : `$ARGUMENTS` = `prepare` (défaut) ou `close`, et une version optionnelle.
+Reply to the user in their language (the artifacts you create in Monday, PRs and commits follow the team's language set in CLAUDE.md, default English).
+
+Input: `$ARGUMENTS` = `prepare` (default) or `close`, and an optional version.
+
+## Workspace mode
+
+If `.agentic/workspace.yml` exists (current folder or parents), the release is **coordinated**: run `prepare` for each repo in `repos` (except `ci: false`), group the shared Monday tickets, and propose deployment in `order`, one repo after another, waiting for the previous one to succeed. Release notes are per repo, with a shared product summary.
 
 ## prepare
 
-1. Dernière release : `gh release list --limit 1` ou dernier tag.
-2. PR mergées depuis : `gh pr list --state merged --base <base> --search "merged:>=<date>"`.
-3. Tickets Monday associés (pied `Monday: #id` ou nom de branche) ; vérifie qu'ils sont au statut `statuses.qa_passed`. Signale tout ticket non validé en QA.
-4. Notes de version groupées (Nouveautés, Corrections, Technique), en langage utilisateur, avec les liens Monday.
-5. Montre les notes et la liste des tickets. Après un oui explicite, déclenche le déploiement :
+1. Last release: `gh release list --limit 1` or the latest tag.
+2. PRs merged since then: `gh pr list --state merged --base <base> --search "merged:>=<date>"`.
+3. Associated Monday tickets (`Monday: #id` footer or branch name); check that they are at status `statuses.qa_passed`. Flag any ticket not validated in QA.
+4. Grouped release notes (New features, Fixes, Technical), in user-facing language, with the Monday links.
+5. Show the notes and the ticket list. After an explicit yes, trigger the deployment:
    `gh workflow run agentic-deploy.yml -f environment=production -f version=<version>`
-6. Rappelle que l'environnement GitHub `production` attend l'approbation d'un reviewer : c'est voulu, ne cherche pas à la contourner.
+6. Remind the user that the GitHub `production` environment waits for a reviewer's approval: this is intended, do not try to bypass it.
 
 ## close
 
-Après un déploiement production réussi (`gh run list --workflow agentic-deploy.yml`) :
-- tickets livrés au statut `statuses.done`, update Monday avec version et lien du run ;
-- épic à `statuses.done` si tous ses tickets le sont ;
-- publie les notes dans la release GitHub si elle existe.
+After a successful production deployment (`gh run list --workflow agentic-deploy.yml`):
+- delivered tickets to status `statuses.done`, Monday update with the version and the run link;
+- epic to `statuses.done` if all its tickets are;
+- publish the notes in the GitHub release if it exists.

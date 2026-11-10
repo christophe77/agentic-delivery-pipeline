@@ -1,23 +1,23 @@
-# CloudFormation : rôle IAM assumé par GitHub Actions via OIDC.
-# Aucune clé d'accès AWS n'est créée ni stockée : GitHub obtient des
-# identifiants temporaires (1 h) uniquement pour le repo et l'environnement indiqués.
+# CloudFormation: IAM role assumed by GitHub Actions through OIDC.
+# No AWS access key is created or stored: GitHub obtains temporary
+# credentials (1 h) only for the given repo and environment.
 #
-# Déployer une pile par environnement (staging, production) :
+# Deploy one stack per environment (staging, production):
 #   aws cloudformation deploy --template-file infra/aws/github-oidc-role.yml \
-#     --stack-name gh-oidc-monrepo-staging --capabilities CAPABILITY_NAMED_IAM \
-#     --parameter-overrides GitHubOwner=mon-org GitHubRepo=mon-repo Environment=staging \
+#     --stack-name gh-oidc-myrepo-staging --capabilities CAPABILITY_NAMED_IAM \
+#     --parameter-overrides GitHubOwner=my-org GitHubRepo=my-repo Environment=staging \
 #       CreateOidcProvider=true PolicyArns=arn:aws:iam::aws:policy/...
-# Puis : gh variable set AWS_ROLE_ARN --env staging --body "<RoleArn en sortie>"
+# Then: gh variable set AWS_ROLE_ARN --env staging --body "<RoleArn output>"
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Rôle GitHub Actions OIDC pour la pipeline agentique
+Description: GitHub Actions OIDC role for the agentic pipeline
 
 Parameters:
   GitHubOwner:
     Type: String
-    Description: Organisation ou compte GitHub (ex. mon-org)
+    Description: GitHub organization or account (e.g. my-org)
   GitHubRepo:
     Type: String
-    Description: Nom du repo
+    Description: Repository name
   Environment:
     Type: String
     AllowedValues: [staging, production]
@@ -25,10 +25,10 @@ Parameters:
     Type: String
     AllowedValues: ["true", "false"]
     Default: "false"
-    Description: true uniquement pour la première pile du compte AWS
+    Description: true only for the first stack in the AWS account
   PolicyArns:
     Type: CommaDelimitedList
-    Description: Politiques gérées attachées au rôle (moindre privilège, voir docs/securite.md)
+    Description: Managed policies attached to the role (least privilege, see docs/security.md)
 
 Conditions:
   CreateProvider: !Equals [!Ref CreateOidcProvider, "true"]
@@ -58,7 +58,7 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # Seuls les jobs de CE repo dans CET environnement GitHub peuvent assumer le rôle.
+                # Only jobs from THIS repo in THIS GitHub environment can assume the role.
                 token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOwner}/${GitHubRepo}:environment:${Environment}
 
 Outputs:

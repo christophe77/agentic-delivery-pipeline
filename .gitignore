@@ -1,4 +1,4 @@
-# Secrets : jamais versionnés
+# Secrets: never committed
 .env
 .env.*
 !.env.example
@@ -8,7 +8,7 @@
 *.p12
 secrets.json
 
-# Artefacts locaux de la pipeline
+# Local pipeline artifacts
 .agentic/runs/
 .agentic-toolkit/
 

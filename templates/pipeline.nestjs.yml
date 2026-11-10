@@ -1,25 +1,25 @@
-# .agentic/pipeline.yml : backend NestJS seul, déployé sur AWS ECS.
-# Ce fichier est versionné : il ne contient AUCUN secret, seulement des
-# identifiants publics (board, noms de ressources, URLs).
+# .agentic/pipeline.yml: NestJS backend only, deployed to AWS ECS.
+# This file is versioned: it contains NO secrets, only public
+# identifiers (board, resource names, URLs).
 version: 1
-project: mon-backend
+project: my-backend
 
 monday:
   board_id: "0000000000"
   tickets_as: subitems            # subitems | items
   groups:
-    epics: Épics
+    epics: Epics
     backlog: Backlog
   columns:
     status: status
     estimate: estimation
     package: package
   statuses:
-    todo: À faire
-    in_progress: En cours
-    review: En revue
-    qa_passed: QA OK
-    done: Terminé
+    todo: To do
+    in_progress: Working on it
+    review: In review
+    qa_passed: QA passed
+    done: Done
 
 git:
   base_branch: main
@@ -44,15 +44,15 @@ packages:
       environments: [staging, production]
       dockerfile: Dockerfile
       context: .
-      ecr_repository: mon-backend-api
+      ecr_repository: my-backend-api
       ecs:
         container: api
         staging:
-          cluster: mon-cluster-staging
+          cluster: my-cluster-staging
           service: api-staging
           task_family: api-staging
         production:
-          cluster: mon-cluster-prod
+          cluster: my-cluster-prod
           service: api-prod
           task_family: api-prod
 
@@ -62,5 +62,5 @@ qa:
   credentials_env: [QA_USER_EMAIL, QA_USER_PASSWORD]
 
 gates:
-  epic_approval: true          # validation humaine avant création Monday
-  production_approval: true    # porté par l'environnement GitHub "production"
+  epic_approval: true          # human approval before creating items in Monday
+  production_approval: true    # enforced by the "production" GitHub environment

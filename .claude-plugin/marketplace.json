@@ -7,7 +7,7 @@
     {
       "name": "agentic",
       "source": "./",
-      "description": "Pipeline de livraison agentique : Monday, dev, revue, QA navigateur, déploiement GitHub et AWS."
+      "description": "Agentic delivery pipeline: Monday, development, review, browser QA, GitHub and AWS deployment."
     }
   ]
 }

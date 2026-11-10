@@ -1,7 +1,7 @@
-# Workflow réutilisable : déploie chaque package qui déclare un bloc `deploy`
-# pour l'environnement demandé. Cibles : aws-ecs, github-release, command.
-# Authentification AWS par OIDC : aucune clé d'accès stockée nulle part.
-# Le rôle vient de la variable d'environnement GitHub AWS_ROLE_ARN.
+# Reusable workflow: deploys every package that declares a `deploy` block
+# for the requested environment. Targets: aws-ecs, github-release, command.
+# AWS authentication through OIDC: no access key stored anywhere.
+# The role comes from the AWS_ROLE_ARN GitHub environment variable.
 name: agentic-deploy
 
 on:
@@ -12,7 +12,7 @@ on:
         type: string
         required: true
       version:
-        description: "Version de release (défaut : numéro de run)"
+        description: "Release version (defaults to the run number)"
         type: string
         default: ""
       config-path:
@@ -34,11 +34,11 @@ jobs:
           CONFIG: ${{ inputs.config-path }}
           TARGET_ENV: ${{ inputs.environment }}
         run: |
-          case "$TARGET_ENV" in staging|production) ;; *) echo "::error::environment invalide : $TARGET_ENV"; exit 1;; esac
+          case "$TARGET_ENV" in staging|production) ;; *) echo "::error::invalid environment: $TARGET_ENV"; exit 1;; esac
           packages=$(yq -o=json -I=0 '[.packages[] | select(.deploy != null) | select((.deploy.environments // ["staging","production"]) | any_c(. == strenv(TARGET_ENV)))]' "$CONFIG")
           echo "packages=$packages" >> "$GITHUB_OUTPUT"
           echo "region=$(yq '.aws.region // "eu-west-3"' "$CONFIG")" >> "$GITHUB_OUTPUT"
-          echo "À déployer en $TARGET_ENV : $packages"
+          echo "To deploy to $TARGET_ENV: $packages"
 
   deploy:
     needs: plan
@@ -50,8 +50,8 @@ jobs:
       matrix:
         package: ${{ fromJSON(needs.plan.outputs.packages) }}
     runs-on: ${{ matrix.package.runner || 'ubuntu-latest' }}
-    # L'environnement porte les règles de protection (reviewers requis en production)
-    # et la variable AWS_ROLE_ARN propre à chaque environnement.
+    # The environment carries the protection rules (required reviewers in production)
+    # and the AWS_ROLE_ARN variable specific to each environment.
     environment: ${{ inputs.environment }}
     concurrency:
       group: deploy-${{ inputs.environment }}-${{ matrix.package.name }}
@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Outillage selon la stack (même logique que la CI)
+      # Tooling per stack (same logic as CI)
       - if: matrix.package.stack == 'node' || matrix.package.stack == 'tauri'
         uses: actions/setup-node@v4
         with:
@@ -85,7 +85,7 @@ jobs:
         with:
           go-version: ${{ matrix.package.go_version || 'stable' }}
 
-      - name: Identifiants AWS (OIDC)
+      - name: AWS credentials (OIDC)
         if: matrix.package.deploy.target == 'aws-ecs' || matrix.package.deploy.aws == true
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -93,13 +93,13 @@ jobs:
           aws-region: ${{ needs.plan.outputs.region }}
           role-session-name: agentic-${{ matrix.package.name }}-${{ github.run_id }}
 
-      # ---------- Cible aws-ecs : image Docker -> ECR -> service ECS ----------
-      - name: Connexion ECR
+      # ---------- aws-ecs target: Docker image -> ECR -> ECS service ----------
+      - name: ECR login
         id: ecr
         if: matrix.package.deploy.target == 'aws-ecs'
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build et push de l'image
+      - name: Build and push the image
         id: image
         if: matrix.package.deploy.target == 'aws-ecs'
         env:
@@ -113,14 +113,14 @@ jobs:
           docker push "$image"
           echo "image=$image" >> "$GITHUB_OUTPUT"
 
-      - name: Task definition actuelle
+      - name: Current task definition
         if: matrix.package.deploy.target == 'aws-ecs'
         env:
           FAMILY: ${{ matrix.package.deploy.ecs[inputs.environment].task_family }}
         run: |
           aws ecs describe-task-definition --task-definition "$FAMILY" --query taskDefinition > "$RUNNER_TEMP/taskdef.json"
 
-      - name: Nouvelle task definition
+      - name: New task definition
         id: render
         if: matrix.package.deploy.target == 'aws-ecs'
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -129,7 +129,7 @@ jobs:
           container-name: ${{ matrix.package.deploy.ecs.container }}
           image: ${{ steps.image.outputs.image }}
 
-      - name: Déploiement ECS
+      - name: ECS deployment
         if: matrix.package.deploy.target == 'aws-ecs'
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
@@ -138,13 +138,13 @@ jobs:
           service: ${{ matrix.package.deploy.ecs[inputs.environment].service }}
           wait-for-service-stability: true
 
-      # ---------- Cible github-release : artefacts publiés en release ----------
-      # Exemple : agent .NET ou app Tauri récupérés par un updater depuis GitHub Releases.
-      - name: Build des artefacts
+      # ---------- github-release target: artifacts published as a release ----------
+      # Example: a .NET agent or a Tauri app fetched by an updater from GitHub Releases.
+      - name: Build the artifacts
         if: matrix.package.deploy.target == 'github-release' && matrix.package.deploy.build
         run: ${{ matrix.package.deploy.build }}
 
-      - name: Release GitHub
+      - name: GitHub release
         if: matrix.package.deploy.target == 'github-release'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -154,10 +154,10 @@ jobs:
         run: |
           shopt -s globstar nullglob
           files=($ARTIFACTS)
-          [ ${#files[@]} -gt 0 ] || { echo "::error::Aucun artefact pour '$ARTIFACTS'"; exit 1; }
+          [ ${#files[@]} -gt 0 ] || { echo "::error::No artifact for '$ARTIFACTS'"; exit 1; }
           gh release create "$TAG" "${files[@]}" --target "$GITHUB_SHA" --generate-notes $PRERELEASE
 
-      # ---------- Cible command : CDK, SAM, Terraform, script maison ----------
-      - name: Commande de déploiement
+      # ---------- command target: CDK, SAM, Terraform, custom script ----------
+      - name: Deployment command
         if: matrix.package.deploy.target == 'command'
         run: ${{ matrix.package.deploy.command }}

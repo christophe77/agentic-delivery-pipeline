@@ -1,6 +1,6 @@
-# Workflow réutilisable : lint, tests et build de chaque package déclaré
-# dans .agentic/pipeline.yml. Fonctionne pour un repo simple (un package
-# à la racine) comme pour un monorepo (un job par package).
+# Reusable workflow: lint, test and build every package declared
+# in .agentic/pipeline.yml. Works for a single repo (one package at the
+# root) as well as for a monorepo (one job per package).
 name: agentic-ci
 
 on:
@@ -24,10 +24,10 @@ jobs:
         env:
           CONFIG: ${{ inputs.config-path }}
         run: |
-          test -f "$CONFIG" || { echo "::error::$CONFIG introuvable (lancer /agentic:pipeline-init)"; exit 1; }
+          test -f "$CONFIG" || { echo "::error::$CONFIG not found (run /agentic:pipeline-init)"; exit 1; }
           packages=$(yq -o=json -I=0 '.packages' "$CONFIG")
           echo "packages=$packages" >> "$GITHUB_OUTPUT"
-          echo "Packages : $(yq '.packages[].name' "$CONFIG" | tr '\n' ' ')"
+          echo "Packages: $(yq '.packages[].name' "$CONFIG" | tr '\n' ' ')"
 
   build:
     needs: plan
@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node / NestJS / React / Tauri front
+      # Node / NestJS / React / Tauri front end
       - if: matrix.package.stack == 'node' || matrix.package.stack == 'tauri'
         uses: actions/setup-node@v4
         with:

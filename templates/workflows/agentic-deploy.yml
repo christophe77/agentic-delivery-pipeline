@@ -1,7 +1,7 @@
-# Copié par /agentic:pipeline-init.
-# push sur main -> CI -> staging -> QA navigateur -> production (approbation humaine)
-# Lancement manuel possible : gh workflow run agentic-deploy.yml -f environment=production
-name: Déploiement
+# Copied by /agentic:pipeline-init.
+# push to main -> CI -> staging -> browser QA -> production (human approval)
+# Can also be run manually: gh workflow run agentic-deploy.yml -f environment=production
+name: Deploy
 
 on:
   push:
@@ -51,8 +51,8 @@ jobs:
       QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
 
   production:
-    # Après une QA verte sur push, ou en manuel. L'environnement GitHub
-    # "production" doit avoir des reviewers requis : c'est la porte humaine.
+    # After a green QA on push, or manually. The "production" GitHub
+    # environment must have required reviewers: that is the human gate.
     needs: [ci, qa]
     if: >-
       always() && needs.ci.result == 'success' &&

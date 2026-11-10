@@ -1,0 +1,60 @@
+# .agentic/workspace.yml: root of a multi-repo workspace.
+# See docs/workspace.md in the toolkit. No secrets in this file.
+version: 1
+workspace: my-product
+description: One sentence about the product and its components.
+
+monday:
+  board_id: "0000000000"
+  tickets_as: subitems
+  groups:
+    epics: Epics
+    backlog: Backlog
+  columns:
+    status: status
+    repo: repo                 # optional column to filter by repo
+  statuses:
+    todo: To do
+    in_progress: Working on it
+    review: In review
+    qa_passed: QA passed
+    done: Done
+
+git:
+  branch_pattern: "{type}/{item_id}-{slug}"
+
+repos:
+  - name: app
+    path: app
+    github: my-org/app
+    base_branch: main
+    role: React / Tauri application, MQTT client
+  - name: backend
+    path: backend
+    github: my-org/backend
+    base_branch: main
+    role: NestJS API, authentication, persistence
+  - name: firmware
+    path: firmware
+    github: my-org/firmware
+    base_branch: master
+    role: Embedded C++ service, publishes the machine state over MQTT
+  - name: releases
+    path: releases
+    github: my-org/releases
+    role: Public installers and update manifest
+    ci: false
+
+contracts:
+  - name: MQTT topics and payloads
+    owner: firmware
+    paths:
+      - firmware/include/topics.h
+      - app/packages/core/src/topics.ts
+  - name: REST API
+    owner: backend
+    paths:
+      - backend/src/**/*.dto.ts
+      - app/packages/core/src/api/
+
+order: [firmware, backend, app]

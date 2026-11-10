@@ -1,4 +1,4 @@
-# Copié par /agentic:pipeline-init. Appelle les workflows réutilisables du toolkit.
+# Copied by /agentic:pipeline-init. Calls the toolkit's reusable workflows.
 name: CI
 
 on:

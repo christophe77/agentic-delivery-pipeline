@@ -1,4 +1,5 @@
 # Sécurité
+[English](../security.md)
 
 Principe : **l'agent n'a jamais accès à un secret, et aucun secret n'est versionné.**
 

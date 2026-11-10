@@ -1,48 +1,62 @@
 ---
 name: implement
-description: Implémente un ticket Monday de bout en bout - branche, code, tests, lint, build, commit, push et ouverture de la PR liée au ticket - en suivant les commandes du package déclarées dans .agentic/pipeline.yml. Met à jour le statut Monday.
-argument-hint: "<id item ticket Monday>"
+description: Implements a Monday ticket end to end - branch, code, tests, lint, build, commit, push and opening the PR linked to the ticket - following the package commands declared in .agentic/pipeline.yml. Updates the Monday status.
+argument-hint: "<Monday ticket item ID>"
 ---
 
-# Implémenter un ticket
+# Implement a ticket
 
-Entrée : `$ARGUMENTS` = ID de l'item ticket Monday.
+Reply to the user in their language (the artifacts you create in Monday, PRs and commits follow the team's language set in CLAUDE.md, default English).
 
-## 1. Préparer
+Input: `$ARGUMENTS` = ID of the Monday ticket item.
 
-- Lis `.agentic/pipeline.yml` et `CLAUDE.md`.
-- Lis le ticket, ses updates et son épic parent (MCP Monday). Si les critères d'acceptation manquent ou sont ambigus, arrête-toi et pose la question.
-- Vérifie que les dépendances du ticket sont terminées.
-- Passe le ticket au statut `statuses.in_progress`.
-- Branche : `git.branch_pattern` (défaut `{type}/{item_id}-{slug}`) depuis `git.base_branch` à jour. Travaille dans un worktree si la session le permet.
+## 0. Repo or workspace mode
 
-## 2. Coder
+Look for `.agentic/workspace.yml` in the current folder, then in parent folders. If it exists, you are in **workspace mode**: read `${CLAUDE_PLUGIN_ROOT}/docs/workspace.md` and apply its rules:
+- affected repos = the ticket's `Repo(s)` field;
+- check `git status` in each one; if there is uncommitted work, stop and ask;
+- **same branch** in each repo, created from its `base_branch`;
+- work in `order` (the repo that owns a contract first);
+- in each repo, read its `CLAUDE.md` and run the commands from its `pipeline.yml`;
+- one PR per repo, with a "Linked PRs" section, all listed in the Monday update.
 
-- Planifie brièvement (fichiers, ordre), puis implémente par petits pas.
-- Tests d'abord quand c'est raisonnable : un test par critère d'acceptation.
-- Respecte les conventions observées dans le code voisin plutôt que des préférences générales.
-- Pour chaque package touché, lance ses commandes `commands.lint`, `commands.test`, `commands.build` (dans `path`). Tout doit passer avant de continuer. Ne désactive jamais un test ou une règle de lint pour passer.
-- Aucun secret en clair : variables d'environnement, `.env.example` avec des valeurs factices, user-secrets .NET.
+## 1. Prepare
 
-## 3. Livrer
+- Read `.agentic/pipeline.yml` and `CLAUDE.md` (in workspace mode: those at the root and in each affected repo).
+- Read the ticket, its updates and its parent epic (Monday MCP). If acceptance criteria are missing or ambiguous, stop and ask.
+- Check that the ticket's dependencies are done.
+- Move the ticket to status `statuses.in_progress`.
+- Branch: `git.branch_pattern` (default `{type}/{item_id}-{slug}`) from an up-to-date `git.base_branch`. Work in a worktree if the session allows it.
 
-- Commits conventionnels : `feat(api): ... ` avec en pied `Monday: #<item_id>`.
-- Push de la branche.
-- PR vers `git.base_branch` avec `gh pr create`, corps :
+## 2. Code
+
+- Plan briefly (files, order), then implement in small steps.
+- Tests first when reasonable: one test per acceptance criterion.
+- Follow the conventions observed in nearby code rather than general preferences.
+- For each affected package, run its `commands.lint`, `commands.test`, `commands.build` commands (in `path`). Everything must pass before continuing. Never disable a test or a lint rule to make it pass.
+- No plaintext secrets: environment variables, `.env.example` with dummy values, .NET user-secrets.
+
+## 3. Deliver
+
+- Conventional commits: `feat(api): ... ` with the footer `Monday: #<item_id>`.
+- Push the branch.
+- PR to `git.base_branch` with `gh pr create`, body:
 
 ```
 ## Ticket
-Monday #<id> : <titre> (<lien>)
-## Changements
-## Critères d'acceptation
-- [x] ... (avec le test qui le couvre)
-## Plan de test
-## Scénarios QA
-## Risques / migration / rollback
+Monday #<id>: <title> (<link>)
+## Changes
+## Acceptance criteria
+- [x] ... (with the test that covers it)
+## Test plan
+## QA scenarios
+## Risks / migration / rollback
+## Linked PRs (workspace mode)
+- my-org/firmware#12 (merge before this one)
 ```
 
-- Passe le ticket à `statuses.review` et poste le lien de la PR en update Monday.
+- Move the ticket to `statuses.review` and post the PR link as a Monday update.
 
-## 4. Auto-revue
+## 4. Self-review
 
-Avant de rendre la main, lance `/agentic:review` sur la PR en local et corrige les findings confirmés.
+Before handing back, run `/agentic:review` on the PR locally and fix the confirmed findings.

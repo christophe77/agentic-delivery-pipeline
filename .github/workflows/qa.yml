@@ -1,5 +1,5 @@
-# Workflow réutilisable : QA navigateur par Claude + Playwright MCP (headless)
-# sur l'environnement de staging, après déploiement.
+# Reusable workflow: browser QA by Claude + Playwright MCP (headless)
+# on the staging environment, after deployment.
 name: agentic-qa
 
 on:
@@ -9,7 +9,7 @@ on:
         type: string
         default: .agentic/pipeline.yml
       base-url:
-        description: "URL à tester (défaut : qa.staging_url du fichier de config)"
+        description: "URL to test (defaults to qa.staging_url from the config file)"
         type: string
         default: ""
       toolkit-repo:
@@ -48,7 +48,7 @@ jobs:
         with:
           fetch-depth: 50
 
-      - name: Toolkit agentic
+      - name: Agentic toolkit
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.toolkit-repo }}
@@ -59,10 +59,10 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Navigateur Playwright
+      - name: Playwright browser
         run: npx -y playwright@latest install --with-deps chromium
 
-      - name: Configuration MCP (Playwright headless, Monday si token)
+      - name: MCP configuration (headless Playwright, Monday if token)
         id: mcp
         env:
           CONFIG: ${{ inputs.config-path }}
@@ -71,11 +71,11 @@ jobs:
         run: |
           url="$BASE_URL"
           [ -n "$url" ] || url=$(yq '.qa.staging_url // ""' "$CONFIG")
-          [ -n "$url" ] || { echo "::error::Aucune URL de QA (input base-url ou qa.staging_url)"; exit 1; }
+          [ -n "$url" ] || { echo "::error::No QA URL (base-url input or qa.staging_url)"; exit 1; }
           echo "url=$url" >> "$GITHUB_OUTPUT"
           mkdir -p .agentic/runs
-          # ${MONDAY_API_TOKEN} reste littéral ici : Claude Code le résout au lancement
-          # du serveur MCP, le token n'est donc jamais écrit sur le disque.
+          # ${MONDAY_API_TOKEN} stays literal here: Claude Code resolves it when starting
+          # the MCP server, so the token is never written to disk.
           if [ "$HAS_MONDAY" = "true" ]; then
             monday=',"monday":{"command":"npx","args":["-y","@mondaydotcomorg/monday-api-mcp","-t","${MONDAY_API_TOKEN}"]}'
           else
@@ -93,19 +93,19 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Utilise la skill `qa` du plugin agentic sur ${{ steps.mcp.outputs.url }}.
-            Commit déployé : ${{ github.sha }}. Retrouve les PR et tickets Monday de ce commit
-            (git log, gh pr list --search ${{ github.sha }}) et déroule leurs scénarios QA,
-            plus les scénarios permanents de qa.scenarios_dir.
-            Identifiants de test : variables QA_USER_EMAIL et QA_USER_PASSWORD (ne jamais les afficher).
-            Écris le rapport dans .agentic/runs/qa/report.md. Termine par la ligne "QA_RESULT=PASS" ou "QA_RESULT=FAIL".
+            Use the `qa` skill of the agentic plugin on ${{ steps.mcp.outputs.url }}.
+            Deployed commit: ${{ github.sha }}. Find the PRs and Monday tickets for this commit
+            (git log, gh pr list --search ${{ github.sha }}) and run their QA scenarios,
+            plus the permanent scenarios in qa.scenarios_dir.
+            Test credentials: QA_USER_EMAIL and QA_USER_PASSWORD variables (never display them).
+            Write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --mcp-config .agentic/runs/mcp.json
             --max-turns ${{ inputs.max-turns }}
             --allowedTools "Read,Write,Grep,Glob,Task,mcp__playwright,mcp__monday,Bash(git log:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
 
-      - name: Rapport QA
+      - name: QA report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +115,6 @@ jobs:
 
       - name: Verdict
         run: |
-          test -f .agentic/runs/qa/report.md || { echo "::error::Pas de rapport QA"; exit 1; }
+          test -f .agentic/runs/qa/report.md || { echo "::error::No QA report"; exit 1; }
           cat .agentic/runs/qa/report.md >> "$GITHUB_STEP_SUMMARY"
-          grep -q "QA_RESULT=PASS" .agentic/runs/qa/report.md || { echo "::error::QA en échec"; exit 1; }
+          grep -q "QA_RESULT=PASS" .agentic/runs/qa/report.md || { echo "::error::QA failed"; exit 1; }

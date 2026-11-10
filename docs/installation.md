@@ -1,45 +1,43 @@
 # Installation
 
-## 1. Publier le toolkit (une fois)
+[Français](fr/installation.md)
 
-```bash
-gh repo create christophe77/agentic-delivery-pipeline --public --source . --push
-git tag v1 && git push origin v1
-```
-
-Le repo doit être **public** pour que des repos d'autres comptes (ex. l'organisation d'un client) appellent ses workflows réutilisables. Il ne contient aucun secret, c'est fait pour.
-
-Versionnage : les projets pointent sur `@v1`. Pour une évolution compatible, déplace le tag `v1` ; pour une rupture, crée `v2`.
-
-## 2. Installer le plugin Claude Code (une fois par machine)
+## 1. Install the Claude Code plugin (once per machine)
 
 ```bash
 claude plugin marketplace add christophe77/agentic-delivery-pipeline
 claude plugin install agentic@agentic-delivery
 ```
 
-Pendant le développement du toolkit, charge-le directement depuis le dossier local :
+To work on the toolkit itself, load it from a local folder instead:
 
 ```bash
-claude --plugin-dir C:/www/agentic-delivery-pipeline
+claude --plugin-dir /path/to/agentic-delivery-pipeline
 ```
 
-Monday : le connecteur Monday de Claude (OAuth) suffit en local. Playwright MCP est fourni par le plugin.
+Monday.com: the Claude Monday connector (OAuth) is enough locally. Playwright MCP ships with the plugin.
 
-## 3. Brancher un projet
+## 2. Wire a project
 
-Dans le repo du projet : `/agentic:pipeline-init <board Monday>`. La skill génère `.agentic/pipeline.yml`, copie les workflows appelants dans `.github/workflows/` et complète `CLAUDE.md`.
+Type `/agentic:pipeline-init <Monday board link or ID>` in a Claude Code session (not in a shell), opened:
+- **in the project repo** (repo mode): the skill writes `.agentic/pipeline.yml`, copies the caller workflows to `.github/workflows/` and adds a `CLAUDE.md` section;
+- **in a folder that contains several repos** of one product (workspace mode): it also writes `.agentic/workspace.yml` and a root `CLAUDE.md`, then wires each repo. See [workspace.md](workspace.md).
 
-## 4. Secrets et variables GitHub (par repo ou au niveau de l'organisation)
+The board can be given as a link (`https://<your-space>.monday.com/boards/1234567890`) or as its ID (`1234567890`).
 
-Tu les saisis toi-même : la valeur est demandée au prompt et n'apparaît ni dans le repo ni dans l'historique du shell.
+## 3. GitHub secrets and variables (per repo or per organization)
 
-| Nom | Type | Utilisé par | Obligatoire |
+You type the values yourself: they are prompted for, so they never land in the repo or in your shell history.
+
+| Name | Type | Used by | Required |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` ou `CLAUDE_CODE_OAUTH_TOKEN` | secret | revue, QA | oui |
-| `MONDAY_API_TOKEN` | secret | QA (mise à jour des tickets depuis la CI) | non |
-| `QA_USER_EMAIL`, `QA_USER_PASSWORD` | secrets (environnement `staging`) | QA | si l'app a une connexion |
-| `AWS_ROLE_ARN` | **variable** d'environnement (`staging`, `production`) | déploiement | si cible AWS |
+| `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | secret | review, QA | yes |
+| `MONDAY_API_TOKEN` | secret | QA (ticket updates from CI) | no |
+| `QA_USER_EMAIL`, `QA_USER_PASSWORD` | secrets (`staging` environment) | QA | if the app has a login |
+| `AWS_ROLE_ARN` | environment **variable** (`staging`, `production`) | deploy | for AWS targets |
+| `CONTEXT_REPOS_TOKEN` | secret | CI review in workspace mode (clones private sibling repos) | if `context-repos` is used |
+
+`CONTEXT_REPOS_TOKEN`: a fine-grained token limited to the sibling repos, with **Contents: read-only** permission only, and an expiry date.
 
 ```bash
 gh secret set ANTHROPIC_API_KEY
@@ -48,42 +46,48 @@ gh secret set QA_USER_EMAIL --env staging
 gh secret set QA_USER_PASSWORD --env staging
 ```
 
-Pour une organisation, mieux vaut des secrets d'organisation limités aux repos concernés :
-`gh secret set ANTHROPIC_API_KEY --org mon-org --repos "repo-a,repo-b"`.
+In an organization, prefer organization secrets limited to the relevant repos:
+`gh secret set ANTHROPIC_API_KEY --org my-org --repos "repo-a,repo-b"`.
 
-## 5. Environnements GitHub
+## 4. GitHub environments
 
 ```bash
 gh api -X PUT repos/<owner>/<repo>/environments/staging
 gh api -X PUT repos/<owner>/<repo>/environments/production
 ```
 
-Puis dans Settings > Environments > production : **Required reviewers** (toi) et, idéalement, **Deployment branches** limité à `main`. C'est la porte humaine avant la prod.
+Then in Settings > Environments > production: set **Required reviewers** and, ideally, limit **Deployment branches** to `main`. This is the human gate before production.
 
-## 6. AWS (OIDC, sans clé d'accès)
+## 5. AWS (OIDC, no access keys)
 
-1. Crée la politique de déploiement à partir de `infra/aws/ecs-deploy-policy.json` (remplace REGION, ACCOUNT_ID, REPOSITORY, noms de rôles) :
+1. Create the deploy policy from `infra/aws/ecs-deploy-policy.json` (replace REGION, ACCOUNT_ID, REPOSITORY and role names):
    ```bash
-   aws iam create-policy --policy-name gh-deploy-mon-repo --policy-document file://ecs-deploy-policy.json
+   aws iam create-policy --policy-name gh-deploy-my-repo --policy-document file://ecs-deploy-policy.json
    ```
-2. Déploie le rôle, une pile par environnement (`CreateOidcProvider=true` seulement la première fois dans le compte) :
+2. Deploy the role, one stack per environment (`CreateOidcProvider=true` only for the first stack in the account):
    ```bash
-   aws cloudformation deploy --template-file infra/aws/github-oidc-role.yml --stack-name gh-oidc-mon-repo-staging --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOwner=mon-org GitHubRepo=mon-repo Environment=staging CreateOidcProvider=true PolicyArns=arn:aws:iam::<compte>:policy/gh-deploy-mon-repo
+   aws cloudformation deploy --template-file infra/aws/github-oidc-role.yml --stack-name gh-oidc-my-repo-staging --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOwner=my-org GitHubRepo=my-repo Environment=staging CreateOidcProvider=true PolicyArns=arn:aws:iam::<account>:policy/gh-deploy-my-repo
    ```
-3. Récupère l'ARN en sortie et pose la variable :
+3. Read the role ARN from the stack outputs and set the variable:
    ```bash
-   gh variable set AWS_ROLE_ARN --env staging --body "arn:aws:iam::<compte>:role/gh-mon-repo-staging"
+   gh variable set AWS_ROLE_ARN --env staging --body "arn:aws:iam::<account>:role/gh-my-repo-staging"
    ```
 
-Idéalement, staging et production sont dans deux comptes AWS distincts.
+Ideally, staging and production live in two separate AWS accounts.
 
-## À valider lors du premier essai
+## Versioning
 
-Ces points dépendent de versions d'outils et n'ont pas encore tourné en conditions réelles :
+Projects reference the reusable workflows with `@v1`. Compatible changes move the `v1` tag; breaking changes get `v2`. For sensitive projects, pin a commit SHA instead of a tag.
 
-- [ ] `claude-code-action@v1` : chargement du plugin via `--plugin-dir` et outil de commentaire inline.
-- [ ] Résolution de `${MONDAY_API_TOKEN}` dans le fichier `--mcp-config` généré par `qa.yml`.
-- [ ] Installation du navigateur pour `@playwright/mcp` en CI (version de Playwright alignée).
-- [ ] `vars.AWS_ROLE_ARN` d'environnement lu depuis un workflow réutilisable d'un autre compte.
-- [ ] Runner Windows : commandes `deploy.build` en bash (Git Bash) avec appel PowerShell.
-- [ ] Garde-fou `scripts/guard.mjs` sous Windows (chemins avec antislashs).
+To call the workflows from repos in other accounts or organizations, the toolkit repo must be public (it contains no secrets by design). If you fork it, publish your fork the same way.
+
+## To validate on the first run
+
+These items depend on tool versions and have not yet run in real conditions:
+
+- [ ] `claude-code-action@v1`: plugin loading through `--plugin-dir`, and the inline comment tool.
+- [ ] Resolution of `${MONDAY_API_TOKEN}` in the `--mcp-config` file generated by `qa.yml`.
+- [ ] Browser installation for `@playwright/mcp` in CI (aligned Playwright version).
+- [ ] Environment-level `vars.AWS_ROLE_ARN` read from a reusable workflow owned by another account.
+- [ ] Windows runner: `deploy.build` commands in bash (Git Bash) calling PowerShell.
+- [x] Guard hook `scripts/guard.mjs` on Windows (backslash paths): tested.

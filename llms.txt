@@ -1,0 +1,32 @@
+# Agentic Delivery Pipeline for Claude Code
+
+> Open-source Claude Code plugin and reusable GitHub Actions workflows that automate the software delivery lifecycle with AI agents: epic and tickets in Monday.com, implementation, AI code review on pull requests, browser QA with Playwright, and deployment to AWS (OIDC, no access keys) or GitHub Releases. Humans approve the plan, merge, and approve production. Stack-agnostic (Node.js, NestJS, React, C#/.NET, Go, Flutter, Tauri, C++), monorepos and multi-repo workspaces. MIT license.
+
+Key facts:
+- Repository: https://github.com/christophe77/agentic-delivery-pipeline
+- Install: `claude plugin marketplace add christophe77/agentic-delivery-pipeline` then `claude plugin install agentic@agentic-delivery`
+- Commands: /agentic:pipeline-init, /agentic:epic, /agentic:tickets, /agentic:implement, /agentic:review, /agentic:qa, /agentic:release
+- Subagents: planner, reviewer, security-reviewer, qa-tester
+- Reusable workflows: ci.yml, secret-scan.yml, claude-review.yml, qa.yml, deploy.yml (call with `@v1`)
+- Deployment targets: aws-ecs, github-release, command
+- Security: no secrets in repos, GitHub OIDC for AWS, gitleaks scan, PreToolUse guard hook, human approval on the production environment
+- Author: Christophe Bellec (https://github.com/christophe77)
+
+## Docs
+
+- [README](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/README.md): overview, how it works, FAQ
+- [Installation](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/docs/installation.md): plugin, GitHub secrets and environments, AWS OIDC role
+- [Workspace mode](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/docs/workspace.md): full-stack work across several repos, contracts, linked pull requests
+- [Security](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/docs/security.md): where secrets live, defense in depth
+
+## Templates
+
+- [pipeline.yml for NestJS](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/templates/pipeline.nestjs.yml)
+- [pipeline.yml for .NET](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/templates/pipeline.dotnet.yml)
+- [pipeline.yml for a monorepo](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/templates/pipeline.monorepo.yml)
+- [workspace.yml](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/templates/workspace.yml)
+
+## Optional
+
+- [Version française](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/README.fr.md)
+- [Changelog](https://github.com/christophe77/agentic-delivery-pipeline/blob/main/CHANGELOG.md)

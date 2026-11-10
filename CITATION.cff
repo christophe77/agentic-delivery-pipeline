@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use or reference this project, please cite it as below."
+title: "Agentic Delivery Pipeline for Claude Code"
+abstract: "Open-source Claude Code plugin and reusable GitHub Actions workflows that automate the software delivery lifecycle with AI agents: Monday.com epics and tickets, implementation, AI code review, Playwright browser QA and deployment to AWS or GitHub Releases."
+type: software
+authors:
+  - family-names: Bellec
+    given-names: Christophe
+repository-code: "https://github.com/christophe77/agentic-delivery-pipeline"
+license: MIT
+version: 0.2.0
+date-released: "2026-11-10"
+keywords:
+  - claude-code
+  - ai-agents
+  - agentic-workflow
+  - ai-code-review
+  - github-actions
+  - aws
+  - devops
+  - monday
+  - playwright

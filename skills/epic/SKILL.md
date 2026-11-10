@@ -1,48 +1,54 @@
 ---
 name: epic
-description: Rédige un épic à partir d'un besoin (texte libre, fichier, compte rendu de réunion, doc Monday) et le crée dans le board Monday du projet après validation. Première étape de la pipeline agentique.
-argument-hint: "<besoin, fichier ou lien>"
+description: Writes an epic from a need (free text, file, meeting notes, Monday doc) and creates it in the project's Monday board after approval. First step of the agentic delivery pipeline.
+argument-hint: "<need, file or link>"
 ---
 
-# Créer un épic
+# Create an epic
 
-Entrée : `$ARGUMENTS` (besoin en texte libre, chemin de fichier, lien de doc ou de réunion Monday).
+Reply to the user in their language (the artifacts you create in Monday, PRs and commits follow the team's language set in CLAUDE.md, default English).
 
-## 1. Contexte
+Input: `$ARGUMENTS` (need as free text, file path, Monday doc or meeting link).
 
-- Lis `.agentic/pipeline.yml` (board Monday, statuts). S'il n'existe pas, propose `/agentic:pipeline-init` et arrête-toi.
-- Lis `CLAUDE.md` et parcours le code concerné (Grep/Glob) pour ancrer l'épic dans l'existant : modules touchés, contraintes, dette.
-- Si l'entrée est une réunion ou un doc Monday, lis-le avec les outils MCP Monday.
-- Cherche dans le board un épic proche pour éviter les doublons.
+## 0. Repo or workspace mode
 
-## 2. Rédaction
+Look for `.agentic/workspace.yml` in the current folder, then in parent folders. If it exists, you are in **workspace mode**: read `${CLAUDE_PLUGIN_ROOT}/docs/workspace.md`, take the Monday board from `workspace.yml`, and the epic covers all affected repos ("Technical impact" section organized by repo, affected contracts flagged).
 
-Structure, en français, concise :
+## 1. Context
+
+- Read `.agentic/pipeline.yml` (repo mode) or `.agentic/workspace.yml` (workspace mode) for the Monday board and statuses. If neither exists, suggest `/agentic:pipeline-init` and stop.
+- Read `CLAUDE.md` and browse the relevant code (Grep/Glob) to ground the epic in what exists: affected modules, constraints, tech debt.
+- If the input is a Monday meeting or doc, read it with the Monday MCP tools.
+- Search the board for a similar epic to avoid duplicates.
+
+## 2. Writing
+
+Structure, in the team's language, concise:
 
 ```
-# <Titre orienté résultat>
-## Contexte et problème
-## Objectif mesurable
-## Périmètre
-## Hors périmètre
-## Critères d'acceptation (niveau épic)
+# <Outcome-oriented title>
+## Context and problem
+## Measurable goal
+## Scope
+## Out of scope
+## Acceptance criteria (epic level)
 - [ ] ...
-## Impacts techniques
-(packages du monorepo / services / migrations / infra AWS / sécurité)
-## Risques et questions ouvertes
-## Découpage pressenti
-(5 à 10 lignes, détaillé ensuite par /agentic:tickets)
+## Technical impact
+(monorepo packages / services / migrations / AWS infra / security)
+## Risks and open questions
+## Expected breakdown
+(5 to 10 lines, detailed later by /agentic:tickets)
 ```
 
-Ne devine pas le métier : liste les zones d'incertitude dans « questions ouvertes ».
+Do not guess the business domain: list areas of uncertainty under "open questions".
 
-## 3. Validation humaine (obligatoire si `gates.epic_approval: true`)
+## 3. Human approval (mandatory if `gates.epic_approval: true`)
 
-Montre l'épic à l'utilisateur et demande validation ou corrections. N'écris rien dans Monday avant un oui explicite.
+Show the epic to the user and ask for approval or corrections. Write nothing to Monday before an explicit yes.
 
-## 4. Création dans Monday
+## 4. Creation in Monday
 
-- Crée l'item dans le groupe `monday.groups.epics` du board, statut `statuses.todo`.
-- Pose la description complète en update de l'item (markdown).
-- Renseigne les colonnes connues dans `monday.columns` (type = Épic, priorité si donnée).
-- Retourne l'ID et le lien de l'item, puis suggère `/agentic:tickets <id>`.
+- Create the item in the board's `monday.groups.epics` group, with status `statuses.todo`.
+- Post the full description as an update on the item (markdown).
+- Fill in the known columns from `monday.columns` (type = Epic, priority if given).
+- Return the item ID and link, then suggest `/agentic:tickets <id>`.
