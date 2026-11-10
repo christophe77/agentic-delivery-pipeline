@@ -9,7 +9,7 @@ on:
         type: string
         default: .agentic/pipeline.yml
       base-url:
-        description: URL à tester (défaut : qa.staging_url du fichier de config)
+        description: "URL à tester (défaut : qa.staging_url du fichier de config)"
         type: string
         default: ""
       toolkit-repo:
