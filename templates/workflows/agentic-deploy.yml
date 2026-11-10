@@ -1,0 +1,66 @@
+# Copié par /agentic:pipeline-init.
+# push sur main -> CI -> staging -> QA navigateur -> production (approbation humaine)
+# Lancement manuel possible : gh workflow run agentic-deploy.yml -f environment=production
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        default: staging
+      version:
+        type: string
+        default: ""
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/ci.yml@v1
+
+  staging:
+    needs: ci
+    if: github.event_name == 'push' || inputs.environment == 'staging'
+    permissions:
+      contents: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/deploy.yml@v1
+    with:
+      environment: staging
+      version: ${{ inputs.version }}
+
+  qa:
+    needs: staging
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/qa.yml@v1
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+      QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+      QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
+
+  production:
+    # Après une QA verte sur push, ou en manuel. L'environnement GitHub
+    # "production" doit avoir des reviewers requis : c'est la porte humaine.
+    needs: [ci, qa]
+    if: >-
+      always() && needs.ci.result == 'success' &&
+      (needs.qa.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production'))
+    permissions:
+      contents: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/deploy.yml@v1
+    with:
+      environment: production
+      version: ${{ inputs.version }}

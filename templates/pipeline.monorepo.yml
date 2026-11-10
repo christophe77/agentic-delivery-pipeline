@@ -1,0 +1,96 @@
+# .agentic/pipeline.yml : monorepo (Turborepo / pnpm workspaces) avec
+# un backend NestJS, un portail React, une app Tauri et un service Go.
+# Un package = un job CI et, s'il a un bloc deploy, un déploiement.
+# Aucun secret dans ce fichier.
+version: 1
+project: mon-monorepo
+
+monday:
+  board_id: "0000000000"
+  tickets_as: subitems
+  groups:
+    epics: Épics
+    backlog: Backlog
+  columns:
+    status: status
+    package: package
+  statuses:
+    todo: À faire
+    in_progress: En cours
+    review: En revue
+    qa_passed: QA OK
+    done: Terminé
+
+git:
+  base_branch: main
+  branch_pattern: "{type}/{item_id}-{slug}"
+
+aws:
+  region: eu-west-3
+
+packages:
+  - name: api
+    path: apps/api
+    stack: node
+    package_manager: pnpm
+    commands:
+      install: pnpm install --frozen-lockfile
+      lint: pnpm turbo run lint --filter=api
+      test: pnpm turbo run test --filter=api
+      build: pnpm turbo run build --filter=api
+    deploy:
+      target: aws-ecs
+      dockerfile: Dockerfile           # relatif à path
+      context: ../..                 # relatif à path : racine du monorepo
+      ecr_repository: mon-monorepo-api
+      ecs:
+        container: api
+        staging: { cluster: cluster-staging, service: api-staging, task_family: api-staging }
+        production: { cluster: cluster-prod, service: api-prod, task_family: api-prod }
+
+  - name: portal
+    path: apps/portal
+    stack: node
+    package_manager: pnpm
+    commands:
+      install: pnpm install --frozen-lockfile
+      lint: pnpm turbo run lint --filter=portal
+      test: pnpm turbo run test --filter=portal
+      build: pnpm turbo run build --filter=portal
+    deploy:
+      target: command
+      aws: true                      # injecte les identifiants OIDC
+      command: pnpm turbo run build --filter=portal && aws s3 sync dist "s3://portal-$TARGET_ENV" --delete && aws cloudfront create-invalidation --distribution-id "$(aws ssm get-parameter --name /portal/$TARGET_ENV/distribution-id --query Parameter.Value --output text)" --paths "/*"
+
+  - name: maintenance-app
+    path: apps/maintenance
+    stack: tauri
+    runner: windows-latest
+    package_manager: pnpm
+    commands:
+      install: pnpm install --frozen-lockfile
+      lint: pnpm lint
+      test: pnpm test
+    deploy:
+      target: github-release
+      environments: [production]
+      build: pnpm tauri build
+      artifacts: src-tauri/target/release/bundle/**/*.msi
+      tag_prefix: maintenance-v
+
+  - name: edge-service
+    path: services/edge
+    stack: go
+    commands:
+      lint: go vet ./...
+      test: go test ./...
+      build: go build ./...
+
+qa:
+  staging_url: https://portal.staging.example.com
+  scenarios_dir: .agentic/qa
+  credentials_env: [QA_USER_EMAIL, QA_USER_PASSWORD]
+
+gates:
+  epic_approval: true
+  production_approval: true

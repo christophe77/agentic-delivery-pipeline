@@ -1,0 +1,48 @@
+# .agentic/pipeline.yml : service C# / .NET (ex. service Windows
+# ou agent embarqué) publié en GitHub Release, avec un runner Windows.
+# Aucun secret dans ce fichier.
+version: 1
+project: mon-service-dotnet
+
+monday:
+  board_id: "0000000000"
+  tickets_as: subitems
+  groups:
+    epics: Épics
+    backlog: Backlog
+  columns:
+    status: status
+  statuses:
+    todo: À faire
+    in_progress: En cours
+    review: En revue
+    qa_passed: QA OK
+    done: Terminé
+
+git:
+  base_branch: main
+  branch_pattern: "{type}/{item_id}-{slug}"
+
+packages:
+  - name: agent
+    path: .
+    stack: dotnet
+    dotnet_version: 8.0.x
+    runner: windows-latest        # net8.0-windows ; ubuntu-latest sinon
+    commands:
+      install: dotnet restore
+      lint: dotnet format --verify-no-changes
+      test: dotnet test --no-restore --logger trx
+      build: dotnet build --no-restore -c Release
+    deploy:
+      target: github-release
+      environments: [staging, production]   # staging = prerelease
+      build: dotnet publish src/Agent/Agent.csproj -c Release -r win-x64 --self-contained -o out && powershell -Command "Compress-Archive -Path out/* -DestinationPath agent-win-x64.zip"
+      artifacts: agent-win-x64.zip
+      tag_prefix: agent-v
+
+# Pas d'UI : la QA navigateur ne s'applique pas. Les critères d'acceptation
+# sont couverts par les tests d'intégration.
+gates:
+  epic_approval: true
+  production_approval: true

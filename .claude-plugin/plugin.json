@@ -1,0 +1,12 @@
+{
+  "name": "agentic",
+  "version": "0.1.0",
+  "description": "Pipeline de livraison agentique : épic et tickets Monday, développement, revue de code, QA navigateur, déploiement GitHub et AWS. Agnostique de la stack (Node/NestJS, .NET, Go, Flutter, monorepos).",
+  "author": {
+    "name": "Christophe Bellec"
+  },
+  "homepage": "https://github.com/christophe77/agentic-delivery-pipeline",
+  "repository": "https://github.com/christophe77/agentic-delivery-pipeline",
+  "license": "MIT",
+  "keywords": ["sdlc", "monday", "github-actions", "aws", "code-review", "qa", "playwright"]
+}

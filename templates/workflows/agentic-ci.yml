@@ -1,0 +1,17 @@
+# Copié par /agentic:pipeline-init. Appelle les workflows réutilisables du toolkit.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/secret-scan.yml@v1
+
+  ci:
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/ci.yml@v1

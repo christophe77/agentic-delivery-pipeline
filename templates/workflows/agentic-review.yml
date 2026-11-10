@@ -1,0 +1,28 @@
+# Copié par /agentic:pipeline-init. Revue Claude à l'ouverture et à chaque push d'une PR.
+name: Revue Claude
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Pas de revue sur les PR venant de forks (pas d'accès aux secrets, et c'est voulu).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/claude-review.yml@v1
+    with:
+      toolkit-ref: v1
+    # Secrets passés explicitement : `secrets: inherit` ne fonctionne pas
+    # entre comptes/organisations différents (toolkit sur un compte, projet sur un autre).
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

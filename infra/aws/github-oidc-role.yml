@@ -1,0 +1,66 @@
+# CloudFormation : rôle IAM assumé par GitHub Actions via OIDC.
+# Aucune clé d'accès AWS n'est créée ni stockée : GitHub obtient des
+# identifiants temporaires (1 h) uniquement pour le repo et l'environnement indiqués.
+#
+# Déployer une pile par environnement (staging, production) :
+#   aws cloudformation deploy --template-file infra/aws/github-oidc-role.yml \
+#     --stack-name gh-oidc-monrepo-staging --capabilities CAPABILITY_NAMED_IAM \
+#     --parameter-overrides GitHubOwner=mon-org GitHubRepo=mon-repo Environment=staging \
+#       CreateOidcProvider=true PolicyArns=arn:aws:iam::aws:policy/...
+# Puis : gh variable set AWS_ROLE_ARN --env staging --body "<RoleArn en sortie>"
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Rôle GitHub Actions OIDC pour la pipeline agentique
+
+Parameters:
+  GitHubOwner:
+    Type: String
+    Description: Organisation ou compte GitHub (ex. mon-org)
+  GitHubRepo:
+    Type: String
+    Description: Nom du repo
+  Environment:
+    Type: String
+    AllowedValues: [staging, production]
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: true uniquement pour la première pile du compte AWS
+  PolicyArns:
+    Type: CommaDelimitedList
+    Description: Politiques gérées attachées au rôle (moindre privilège, voir docs/securite.md)
+
+Conditions:
+  CreateProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1]
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub gh-${GitHubRepo}-${Environment}
+      MaxSessionDuration: 3600
+      ManagedPolicyArns: !Ref PolicyArns
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                # Seuls les jobs de CE repo dans CET environnement GitHub peuvent assumer le rôle.
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOwner}/${GitHubRepo}:environment:${Environment}
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt DeployRole.Arn

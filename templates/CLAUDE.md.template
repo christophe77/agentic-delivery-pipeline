@@ -1,0 +1,29 @@
+## Pipeline agentique
+
+Ce repo utilise le plugin `agentic` (https://github.com/christophe77/agentic-delivery-pipeline).
+Configuration : `.agentic/pipeline.yml`.
+
+### Cycle
+1. `/agentic:epic <besoin>` : épic dans Monday (validation humaine)
+2. `/agentic:tickets <id épic>` : tickets en tranches verticales (validation humaine)
+3. `/agentic:implement <id ticket>` : branche, code, tests, PR
+4. `/agentic:review <PR>` : revue locale ; la CI relance une revue à chaque push
+5. Merge : **humain**
+6. Déploiement staging automatique, puis `/agentic:qa` (CI)
+7. `/agentic:release prepare` : déploiement production (approbation GitHub requise)
+8. `/agentic:release close` : tickets Monday en Terminé
+
+### Conventions
+- Branches : `{type}/{item_id}-{slug}` (ex. `feat/1234567890-export-csv`)
+- Commits conventionnels, pied `Monday: #<item_id>`
+- Une PR = un ticket
+- Définition de « fini » : critères d'acceptation testés, lint/tests/build verts, revue sans bloquant, QA OK en staging
+
+### Commandes du projet
+<!-- reprises de .agentic/pipeline.yml par /agentic:pipeline-init -->
+
+### Sécurité (non négociable)
+- Aucun secret dans le repo : variables d'environnement, GitHub Secrets, AWS SSM / Secrets Manager, user-secrets .NET.
+- Seuls les `.env.example` avec valeurs factices sont versionnés.
+- L'agent ne lit pas les fichiers `.env`, ne déploie pas en production lui-même et ne pousse pas sur `main`.
+- AWS uniquement via OIDC depuis GitHub Actions.

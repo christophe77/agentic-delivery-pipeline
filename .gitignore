@@ -1,0 +1,17 @@
+# Secrets : jamais versionnés
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+secrets.json
+
+# Artefacts locaux de la pipeline
+.agentic/runs/
+.agentic-toolkit/
+
+node_modules/
+.DS_Store
+Thumbs.db

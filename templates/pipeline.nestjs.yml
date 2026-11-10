@@ -1,0 +1,66 @@
+# .agentic/pipeline.yml : backend NestJS seul, déployé sur AWS ECS.
+# Ce fichier est versionné : il ne contient AUCUN secret, seulement des
+# identifiants publics (board, noms de ressources, URLs).
+version: 1
+project: mon-backend
+
+monday:
+  board_id: "0000000000"
+  tickets_as: subitems            # subitems | items
+  groups:
+    epics: Épics
+    backlog: Backlog
+  columns:
+    status: status
+    estimate: estimation
+    package: package
+  statuses:
+    todo: À faire
+    in_progress: En cours
+    review: En revue
+    qa_passed: QA OK
+    done: Terminé
+
+git:
+  base_branch: main
+  branch_pattern: "{type}/{item_id}-{slug}"
+
+aws:
+  region: eu-west-3
+
+packages:
+  - name: api
+    path: .
+    stack: node
+    node_version: "22"
+    package_manager: npm
+    commands:
+      install: npm ci
+      lint: npm run lint
+      test: npm test -- --ci
+      build: npm run build
+    deploy:
+      target: aws-ecs
+      environments: [staging, production]
+      dockerfile: Dockerfile
+      context: .
+      ecr_repository: mon-backend-api
+      ecs:
+        container: api
+        staging:
+          cluster: mon-cluster-staging
+          service: api-staging
+          task_family: api-staging
+        production:
+          cluster: mon-cluster-prod
+          service: api-prod
+          task_family: api-prod
+
+qa:
+  staging_url: https://api.staging.example.com
+  scenarios_dir: .agentic/qa
+  credentials_env: [QA_USER_EMAIL, QA_USER_PASSWORD]
+
+gates:
+  epic_approval: true          # validation humaine avant création Monday
+  production_approval: true    # porté par l'environnement GitHub "production"

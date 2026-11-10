@@ -1,0 +1,13 @@
+{
+  "name": "agentic-delivery",
+  "owner": {
+    "name": "Christophe Bellec"
+  },
+  "plugins": [
+    {
+      "name": "agentic",
+      "source": "./",
+      "description": "Pipeline de livraison agentique : Monday, dev, revue, QA navigateur, déploiement GitHub et AWS."
+    }
+  ]
+}
