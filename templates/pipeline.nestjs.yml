@@ -24,6 +24,7 @@ monday:
 git:
   base_branch: staging          # feature PRs target this branch; a merge deploys to staging
   production_branch: main       # fed by a promotion PR staging -> main; a merge deploys to production
+  # Three-branch model (develop -> staging -> main): base_branch: develop, staging_branch: staging
   branch_pattern: "{type}/{item_id}-{slug}"
 
 aws:

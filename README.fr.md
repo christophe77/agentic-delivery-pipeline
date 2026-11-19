@@ -12,7 +12,7 @@ besoin ─▶ épic ─▶ tickets ─▶ dev + tests ─▶ PR → staging ─�
    (/agentic:release)     HUMAIN                          (CI)
 ```
 
-Deux branches longues, une par environnement : `staging` reçoit les PR de fonctionnalités, `main` ne reçoit que des PR de promotion depuis `staging`. Chaque PR est aussi déployée sur un environnement `dev` partagé pour être testée dans un navigateur pendant la revue.
+Deux branches longues, une par environnement : `staging` reçoit les PR de fonctionnalités, `main` ne reçoit que des PR de promotion depuis `staging`. Chaque PR est aussi déployée sur un environnement `dev` partagé pour être testée dans un navigateur pendant la revue. Le modèle à trois branches (`develop` → `staging` → `main`) et les projets qui gardent leur propre workflow de déploiement sont aussi supportés : voir [docs/fr/installation.md](docs/fr/installation.md#trois-branches-develop--staging--main).
 
 Agnostique de la stack : NestJS / Node, React, C# / .NET, Go, Flutter, Tauri, et monorepos (Turborepo, pnpm workspaces).
 **Aucun secret dans aucun repo** : GitHub Secrets pour les clés d'API, OIDC pour AWS, garde-fou qui empêche l'agent de lire ou d'écrire des secrets.

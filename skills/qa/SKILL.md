@@ -12,9 +12,11 @@ Input: `$ARGUMENTS` = environment (`dev`, `staging` - default, `production`) or 
 
 | Environment | When | Scope | Report on | Monday |
 |---|---|---|---|---|
-| `dev` | on every PR to `git.base_branch`, next to the code review | the PR's ticket scenarios + `qa.scenarios_dir` | the PR | update only |
-| `staging` | after a push to `git.base_branch` (merged PRs) | tickets of the merged PRs + `qa.scenarios_dir` | each merged PR | `statuses.qa_passed` or back to `statuses.in_progress` |
-| `production` | after a production deploy (push to `git.production_branch`) | **read-only smoke**: `qa.production_scenarios_dir` + non-mutating checks of the delivered tickets | the promotion PR | update only; a FAIL is an incident, alert the team |
+| `dev` | after a deploy to dev: the open PR (two-branch model) or the PR merged into `git.base_branch` (three-branch model) | the PR's ticket scenarios + `qa.scenarios_dir` | the PR | update only |
+| `staging` | after a deploy to staging (merge into `git.staging_branch`) | tickets of the PRs included + `qa.scenarios_dir` | each included PR, or the promotion PR | `statuses.qa_passed` or back to `statuses.in_progress` |
+| `production` | after a production deploy (merge into `git.production_branch`) | **read-only smoke**: `qa.production_scenarios_dir` + non-mutating checks of the delivered tickets | the promotion PR | update only; a FAIL is an incident, alert the team |
+
+In CI, the QA runs either from the toolkit deploy template or from an `agentic-qa` job added at the end of the project's own deploy workflow.
 
 ## 0. Workspace mode
 
@@ -47,5 +49,8 @@ Limitations (not tested, missing data):
 ```
 
 - PR: comment with the report (`gh pr comment`).
-- Monday: update on the ticket; on staging only, status `statuses.qa_passed` if everything passes, otherwise back to `statuses.in_progress` with the failures.
+- Monday: update on the ticket. Status:
+  - when the QA starts, `statuses.qa_<environment>` if the board defines it (e.g. `qa_dev: Dev QA`, `qa_staging: STG QA`, `qa_production: Prod QA`);
+  - on failure, `statuses.qa_failed` if defined, otherwise back to `statuses.in_progress`, with the failures;
+  - on success on staging, `statuses.qa_passed`; on dev and production, leave the status for the next step.
 - Save the report and screenshots in `.agentic/runs/<date>-qa/` (ignored by git); in CI, they are published as an artifact.

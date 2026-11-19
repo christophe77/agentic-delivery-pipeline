@@ -38,7 +38,7 @@ Inspect the root and subfolders (2 levels deep):
 | `Cargo.toml` + `src-tauri/` | tauri (node + rust) |
 | `CMakeLists.txt`, `vcpkg.json` | cpp (the CI installs no tooling: the declared commands do everything) |
 | `Dockerfile` | candidate for `aws-ecs` deployment |
-| an existing `release.yml` or deployment already in place | keep it: no `deploy` block, and mention it in the summary |
+| an existing `release.yml` or deployment already in place | keep it: no `deploy` block, do not copy `agentic-deploy.yml`, and plug the QA into it (step 3) |
 
 Read the existing scripts (`package.json`, `Makefile`, `.github/workflows/*`) to reuse the real install / lint / test / build commands instead of inventing them. Detect the package manager from the lockfile.
 
@@ -50,8 +50,11 @@ Ask the user for what you cannot infer, in a single grouped question:
 - Monday board ID (argument `$ARGUMENTS` if provided) and exact labels of the status column;
 - deployment target of each package (`aws-ecs`, `github-release`, `command`, or none);
 - AWS region, ECS cluster / service / task definition family names;
-- branch model: `git.base_branch` (default `staging`, PR target, deploys to staging) and `git.production_branch` (default `main`, deploys to production); if `staging` does not exist, propose creating it from the production branch (`git push origin <prod>:refs/heads/staging`, after a yes);
-- whether a shared `dev` environment exists (PR deploy + QA next to the review); if not, remove the `ci`, `dev` and `qa-dev` jobs from `agentic-review.yml`;
+- branch model, inferred from the remote branches and the existing deploy workflows:
+  - **two branches**: `git.base_branch: staging` (PR target, deploys to staging), `git.production_branch: main`; if `staging` does not exist, propose creating it from the production branch (`git push origin <prod>:refs/heads/staging`, after a yes);
+  - **three branches** (a `develop`-like branch exists): `git.base_branch: develop` (PR target, deploys to dev), `git.staging_branch: staging`, `git.production_branch: main`;
+- whether the toolkit deploys (`agentic-deploy.yml`) or an existing deploy workflow is kept; with an existing one, the GitHub environment names it uses (e.g. `development`);
+- whether PRs are deployed to a shared `dev` environment before merge (two-branch model only); if not, remove the `ci`, `dev` and `qa-dev` jobs from `agentic-review.yml`;
 - QA URLs: `qa.dev_url`, `qa.staging_url`, `qa.production_url`, and a few read-only production scenarios in `qa.production_scenarios_dir`.
 
 Use the Monday MCP tools to read the board (columns and statuses) rather than asking, whenever possible.
@@ -60,7 +63,9 @@ Use the Monday MCP tools to read the board (columns and statuses) rather than as
 
 ## 3. Copy the calling workflows
 
-Copy `templates/workflows/agentic-*.yml` into `.github/workflows/`. Replace `@v1` with the desired toolkit version, and `staging` / `main` in the `branches:` filters if the branch names differ. Do not touch existing workflows: flag duplicates (an existing CI) and let the user choose.
+Copy `templates/workflows/agentic-*.yml` into `.github/workflows/`. Replace `@v1` with the desired toolkit version, and set the `branches:` filters to the real branch names (`agentic-review.yml`: `git.base_branch`). Do not touch existing workflows, with one exception below; flag duplicates (an existing CI) and let the user choose.
+
+**Existing deploy workflow kept**: do not copy `agentic-deploy.yml`. Instead, append the job from `templates/workflows/agentic-qa-job.yml` at the end of the existing deploy workflow (the only change to it): set `needs:` to its deploy job, and map its branches and GitHub environment names. Show the diff and get an explicit yes before writing it. In `agentic-review.yml`, keep only the `review` job.
 
 ## 4. CLAUDE.md
 

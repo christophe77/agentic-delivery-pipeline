@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 ## [Unreleased]
 
+### Added
+- **Three-branch model** `develop` → `staging` → `main` (`git.staging_branch`): `/agentic:release prepare staging` and `prepare production` open the two promotion PRs.
+- **QA after an existing deploy workflow**: `templates/workflows/agentic-qa-job.yml`, a job to append to the project's own deploy workflow; `qa.yml` gets `github-environment` (e.g. `development`) and `commit` inputs.
+- Guard hook also blocks direct pushes to `develop`.
+
 ### Changed
 - **Branch model staging -> main**: feature PRs target `staging` (push deploys to staging), `main` is fed by a promotion PR opened by `/agentic:release prepare` (push deploys to production after approval).
 - Guard hook also blocks direct pushes to `staging`.

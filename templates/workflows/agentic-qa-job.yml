@@ -1,0 +1,30 @@
+# Snippet, not a standalone workflow: for projects that keep their own deploy workflow.
+# /agentic:pipeline-init appends this job at the end of the existing deploy workflow,
+# so browser QA runs right after each successful deployment.
+#
+# Assumes the common pattern "deploy on PR merged into develop / staging / main".
+# Adapt:
+#   - `needs:` to the name of the existing deploy job;
+#   - the branch -> environment mapping and the GitHub environment names.
+
+  agentic-qa:
+    needs: deploy                       # <- name of the existing deploy job
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/qa.yml@v1
+    with:
+      # QA mode: dev | staging | production (production = read-only smoke checks)
+      environment: ${{ github.event.pull_request.base.ref == 'main' && 'production' || github.event.pull_request.base.ref == 'staging' && 'staging' || 'dev' }}
+      # GitHub environment that holds QA_USER_EMAIL / QA_USER_PASSWORD
+      github-environment: ${{ github.event.pull_request.base.ref == 'main' && 'production' || github.event.pull_request.base.ref == 'staging' && 'staging' || 'development' }}
+      commit: ${{ github.event.pull_request.merge_commit_sha }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+      QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+      QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}

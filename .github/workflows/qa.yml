@@ -1,16 +1,26 @@
 # Reusable workflow: browser QA by Claude + Playwright MCP (headless), after deployment.
-#   dev        -> on a pull request, next to the code review (PR head deployed to dev)
-#   staging    -> after a push to the staging branch
+#   dev        -> after a deploy to dev (a PR deployed to dev, or a merge into the dev branch)
+#   staging    -> after a deploy to staging
 #   production -> after a production deploy: read-only smoke checks only
+# Called by the toolkit's deploy template, or as an extra job at the end of a
+# project's existing deploy workflow (templates/workflows/agentic-qa-job.yml).
 name: agentic-qa
 
 on:
   workflow_call:
     inputs:
       environment:
-        description: dev | staging | production
+        description: dev | staging | production (selects the QA mode and qa.<environment>_url)
         type: string
         default: staging
+      github-environment:
+        description: "GitHub environment holding the QA secrets, if its name differs (e.g. development)"
+        type: string
+        default: ""
+      commit:
+        description: "Deployed commit (defaults to github.sha; pass the merge commit for PR-closed triggers)"
+        type: string
+        default: ""
       config-path:
         type: string
         default: .agentic/pipeline.yml
@@ -43,7 +53,7 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.github-environment || inputs.environment }}
     permissions:
       contents: read
       pull-requests: write
@@ -52,6 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.commit || github.sha }}
           fetch-depth: 50
 
       - name: Agentic toolkit
@@ -102,10 +113,11 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             Use the `qa` skill of the agentic plugin on ${{ steps.mcp.outputs.url }}.
-            Environment: ${{ inputs.environment }}. Deployed commit: ${{ github.sha }}.
-            ${{ inputs.environment == 'dev' && format('Pull request #{0}: run the QA scenarios of this PR and of its Monday ticket, plus the permanent scenarios in qa.scenarios_dir. Post the report on the PR.', github.event.pull_request.number) || '' }}
-            ${{ inputs.environment == 'staging' && 'Find the PRs and Monday tickets for this commit (git log, gh pr list --search <sha>) and run their QA scenarios, plus the permanent scenarios in qa.scenarios_dir.' || '' }}
-            ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR (staging -> main) of this commit.' || '' }}
+            Environment: ${{ inputs.environment }}. Deployed commit: ${{ inputs.commit || github.sha }}.
+            ${{ github.event.pull_request.number && format('Triggering pull request: #{0} (base {1}).', github.event.pull_request.number, github.event.pull_request.base.ref) || '' }}
+            ${{ inputs.environment == 'dev' && 'Run the QA scenarios of the triggering PR and of its Monday ticket, plus the permanent scenarios in qa.scenarios_dir. Post the report on that PR.' || '' }}
+            ${{ inputs.environment == 'staging' && 'Find the PRs and Monday tickets included in this deployment (the triggering PR if it is a promotion PR, git log, gh pr list --search <sha>) and run their QA scenarios, plus the permanent scenarios in qa.scenarios_dir.' || '' }}
+            ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR of this deployment.' || '' }}
             Test credentials: QA_USER_EMAIL and QA_USER_PASSWORD variables (never display them).
             Write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
           claude_args: >-
