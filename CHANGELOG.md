@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-11-19
+
+### Fixed
+- QA: skipped with a warning (not failed) when the deployed commit has no `.agentic/pipeline.yml`, e.g. on `main` before the first promotion.
+- QA: explicit verdict when Claude did not run (claude-code-action workflow validation: the workflow file must be identical on the default branch) or when setup failed, instead of "No QA report".
+- QA: Playwright and Monday MCP servers pre-installed and `MCP_TIMEOUT` raised to 120 s, so the Monday server no longer times out at startup.
+- QA: screenshots and evidence saved under `.agentic/runs/qa/` in CI, the folder published as the run artifact.
+- QA: test credentials passed to Playwright MCP with `--secrets` (masked in its responses); login forms are filled from `process.env`, never typed by the model.
+- Guard hook: no false positive on `process.env` (only real `.env` files are blocked) nor on a protected branch name that appears after `git push` in another command of the same line (e.g. `gh pr create --base main`).
+
 ## [0.3.0] - 2026-11-19
 
 ### Added
