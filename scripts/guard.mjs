@@ -26,14 +26,14 @@ const SECRET_CONTENT = [
 ];
 
 const DANGEROUS_COMMANDS = [
-  ["reading a .env file", /\b(cat|type|more|less|head|tail|Get-Content|gc|bat)\b[^|;&]*\.env\b(?!\.(example|sample|template))/i],
+  ["reading a .env file", /\b(cat|type|more|less|head|tail|Get-Content|gc|bat)\b[^|;&\n]*(^|[\s/\\'"=])\.env\b(?!\.(example|sample|template))/i],
   ["dumping environment variables", /(^|[;&|]\s*)(printenv|env|set|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)\s*($|[;&|])/i],
   ["configuring AWS credentials", /\baws\s+(configure|sts\s+get-session-token|iam\s+create-access-key)\b/i],
   ["manual production deployment", /\b(cdk\s+deploy|terraform\s+apply|serverless\s+deploy|sam\s+deploy)\b[^\n]*\bprod/i],
   ["production AWS profile", /--profile[= ]\S*prod/i],
   ["modifying GitHub secrets", /\bgh\s+secret\s+(set|delete)\b/i],
   ["force push", /\bgit\s+push\b[^\n]*\s(--force|-f)(\s|$)/i],
-  ["direct push to a protected branch (develop, staging, main)", /\bgit\s+push\b[^\n]*\s(\S+:)?(main|master|staging|develop)(\s|$)/i],
+  ["direct push to a protected branch (develop, staging, main)", /\bgit\s+push\b[^\n;&|]*\s(\S+:)?(main|master|staging|develop)(\s|$|[;&|])/i],
 ];
 
 function block(reason) {

@@ -65,23 +65,48 @@ jobs:
           ref: ${{ inputs.commit || github.sha }}
           fetch-depth: 50
 
+      - name: Pipeline configuration
+        id: config
+        env:
+          CONFIG: ${{ inputs.config-path }}
+        run: |
+          if [ -f "$CONFIG" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::QA skipped: $CONFIG does not exist on the deployed commit (pipeline not set up on this branch yet)."
+          fi
+
       - name: Agentic toolkit
+        if: steps.config.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.toolkit-repo }}
           ref: ${{ inputs.toolkit-ref }}
           path: .agentic-toolkit
 
-      - uses: actions/setup-node@v4
+      - if: steps.config.outputs.skip != 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Playwright browser
-        run: npx -y playwright@latest install --with-deps chromium
+      - name: Playwright browser and MCP servers (pre-installed so they start within the MCP timeout)
+        if: steps.config.outputs.skip != 'true'
+        env:
+          HAS_MONDAY: ${{ secrets.MONDAY_API_TOKEN != '' }}
+        run: |
+          npx -y playwright@latest install --with-deps chromium
+          timeout 180 npx -y @playwright/mcp@latest --help > /dev/null < /dev/null || true
+          if [ "$HAS_MONDAY" = "true" ]; then
+            timeout 180 npx -y @mondaydotcomorg/monday-api-mcp --help > /dev/null < /dev/null || true
+          fi
 
       - name: MCP configuration (headless Playwright, Monday if token)
         id: mcp
+        if: steps.config.outputs.skip != 'true'
         env:
+          QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+          QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
           CONFIG: ${{ inputs.config-path }}
           BASE_URL: ${{ inputs.base-url }}
           TARGET_ENV: ${{ inputs.environment }}
@@ -100,11 +125,20 @@ jobs:
           else
             monday=''
           fi
-          printf '%s\n' "{\"mcpServers\":{\"playwright\":{\"command\":\"npx\",\"args\":[\"-y\",\"@playwright/mcp@latest\",\"--headless\",\"--isolated\",\"--output-dir\",\".agentic/runs/qa\"]}${monday}}}" > .agentic/runs/mcp.json
+          # Test credentials in a dotenv file outside the workspace (never uploaded): Playwright MCP
+          # replaces these values with their names in its tool responses, so they stay out of the transcript.
+          secrets_file="$RUNNER_TEMP/qa-secrets.env"
+          : > "$secrets_file"
+          [ -z "$QA_USER_EMAIL" ] || printf 'QA_USER_EMAIL=%s\n' "$QA_USER_EMAIL" >> "$secrets_file"
+          [ -z "$QA_USER_PASSWORD" ] || printf 'QA_USER_PASSWORD=%s\n' "$QA_USER_PASSWORD" >> "$secrets_file"
+          printf '%s\n' "{\"mcpServers\":{\"playwright\":{\"command\":\"npx\",\"args\":[\"-y\",\"@playwright/mcp@latest\",\"--headless\",\"--isolated\",\"--output-dir\",\".agentic/runs/qa\",\"--secrets\",\"$secrets_file\"]}${monday}}}" > .agentic/runs/mcp.json
           node -e "JSON.parse(require('fs').readFileSync('.agentic/runs/mcp.json','utf8'))"
 
       - uses: anthropics/claude-code-action@v1
+        id: claude
+        if: steps.config.outputs.skip != 'true'
         env:
+          MCP_TIMEOUT: "120000"
           MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
           QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
           QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
@@ -118,8 +152,8 @@ jobs:
             ${{ inputs.environment == 'dev' && 'Run the QA scenarios of the triggering PR and of its Monday ticket, plus the permanent scenarios in qa.scenarios_dir. Post the report on that PR.' || '' }}
             ${{ inputs.environment == 'staging' && 'Find the PRs and Monday tickets included in this deployment (the triggering PR if it is a promotion PR, git log, gh pr list --search <sha>) and run their QA scenarios, plus the permanent scenarios in qa.scenarios_dir.' || '' }}
             ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR of this deployment.' || '' }}
-            Test credentials: QA_USER_EMAIL and QA_USER_PASSWORD variables (never display them).
-            Write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
+            Test credentials: environment variables QA_USER_EMAIL and QA_USER_PASSWORD (never display them). To fill the login form, run Playwright code through the Playwright MCP tools that reads process.env.QA_USER_EMAIL / process.env.QA_USER_PASSWORD; never type the values yourself.
+            Save every screenshot and evidence file under .agentic/runs/qa/ (the folder published as the run artifact) and write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --mcp-config .agentic/runs/mcp.json
@@ -127,7 +161,7 @@ jobs:
             --allowedTools "Read,Write,Grep,Glob,Task,mcp__playwright,mcp__monday,Bash(git log:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
 
       - name: QA report
-        if: always()
+        if: always() && steps.config.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: qa-report-${{ inputs.environment }}-${{ github.run_id }}
@@ -135,7 +169,26 @@ jobs:
           if-no-files-found: warn
 
       - name: Verdict
+        if: always()
+        env:
+          SKIPPED: ${{ steps.config.outputs.skip }}
+          CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
+          CLAUDE_RAN: ${{ steps.claude.outputs.execution_file != '' }}
+          TARGET_ENV: ${{ inputs.environment }}
         run: |
-          test -f .agentic/runs/qa/report.md || { echo "::error::No QA report"; exit 1; }
+          if [ "$SKIPPED" = "true" ]; then
+            echo "QA skipped on $TARGET_ENV: no pipeline configuration on the deployed commit." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ ! -f .agentic/runs/qa/report.md ]; then
+            if [ "$CLAUDE_OUTCOME" != "success" ] && [ "$CLAUDE_RAN" != "true" ]; then
+              echo "::error::QA setup or the claude step failed (outcome: $CLAUDE_OUTCOME). See the previous steps."
+            elif [ "$CLAUDE_RAN" != "true" ]; then
+              echo "::error::Claude did not run. Most likely the workflow validation of claude-code-action: the workflow file of this run must be identical on the repository's default branch. Merge it there, then re-run this job."
+            else
+              echo "::error::Claude ran but wrote no QA report (.agentic/runs/qa/report.md). See the claude step log."
+            fi
+            exit 1
+          fi
           cat .agentic/runs/qa/report.md >> "$GITHUB_STEP_SUMMARY"
           grep -q "QA_RESULT=PASS" .agentic/runs/qa/report.md || { echo "::error::QA failed"; exit 1; }
