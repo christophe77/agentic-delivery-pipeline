@@ -90,7 +90,7 @@ L'agent prépare, un humain décide à quatre endroits :
 
 ## Statut
 
-v0.2 : à valider sur de vrais projets. Points à tester en priorité : voir [docs/installation.md](docs/fr/installation.md#à-valider-lors-du-premier-essai).
+v0.3 : à valider sur de vrais projets. Points à tester en priorité : voir [docs/installation.md](docs/fr/installation.md#à-valider-lors-du-premier-essai).
 
 ## Licence
 
