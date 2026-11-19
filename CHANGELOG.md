@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-19
 
 ### Added
 - **Three-branch model** `develop` → `staging` → `main` (`git.staging_branch`): `/agentic:release prepare staging` and `prepare production` open the two promotion PRs.
