@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Branch model staging -> main**: feature PRs target `staging` (push deploys to staging), `main` is fed by a promotion PR opened by `/agentic:release prepare` (push deploys to production after approval).
+- Guard hook also blocks direct pushes to `staging`.
+
+### Added
+- **QA on dev for every pull request**: the review workflow deploys the PR to a `dev` environment and runs browser QA there, in parallel with the AI review.
+- **Production smoke QA** after each production deploy: read-only scenarios from `qa.production_scenarios_dir`; `/agentic:release close` waits for it to be green.
+- `environment` input on the QA workflow; `qa.dev_url`, `qa.production_url`, `git.production_branch` in `pipeline.yml`; `dev` accepted by the deploy workflow and the OIDC role template.
+
 ## [0.2.0] - 2026-11-10
 
 ### Added

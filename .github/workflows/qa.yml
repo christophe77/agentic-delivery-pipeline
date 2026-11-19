@@ -1,15 +1,21 @@
-# Reusable workflow: browser QA by Claude + Playwright MCP (headless)
-# on the staging environment, after deployment.
+# Reusable workflow: browser QA by Claude + Playwright MCP (headless), after deployment.
+#   dev        -> on a pull request, next to the code review (PR head deployed to dev)
+#   staging    -> after a push to the staging branch
+#   production -> after a production deploy: read-only smoke checks only
 name: agentic-qa
 
 on:
   workflow_call:
     inputs:
+      environment:
+        description: dev | staging | production
+        type: string
+        default: staging
       config-path:
         type: string
         default: .agentic/pipeline.yml
       base-url:
-        description: "URL to test (defaults to qa.staging_url from the config file)"
+        description: "URL to test (defaults to qa.<environment>_url from the config file)"
         type: string
         default: ""
       toolkit-repo:
@@ -37,7 +43,7 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: staging
+    environment: ${{ inputs.environment }}
     permissions:
       contents: read
       pull-requests: write
@@ -67,11 +73,13 @@ jobs:
         env:
           CONFIG: ${{ inputs.config-path }}
           BASE_URL: ${{ inputs.base-url }}
+          TARGET_ENV: ${{ inputs.environment }}
           HAS_MONDAY: ${{ secrets.MONDAY_API_TOKEN != '' }}
         run: |
+          case "$TARGET_ENV" in dev|staging|production) ;; *) echo "::error::invalid environment: $TARGET_ENV"; exit 1;; esac
           url="$BASE_URL"
-          [ -n "$url" ] || url=$(yq '.qa.staging_url // ""' "$CONFIG")
-          [ -n "$url" ] || { echo "::error::No QA URL (base-url input or qa.staging_url)"; exit 1; }
+          [ -n "$url" ] || url=$(yq ".qa.${TARGET_ENV}_url // \"\"" "$CONFIG")
+          [ -n "$url" ] || { echo "::error::No QA URL (base-url input or qa.${TARGET_ENV}_url)"; exit 1; }
           echo "url=$url" >> "$GITHUB_OUTPUT"
           mkdir -p .agentic/runs
           # ${MONDAY_API_TOKEN} stays literal here: Claude Code resolves it when starting
@@ -94,9 +102,10 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             Use the `qa` skill of the agentic plugin on ${{ steps.mcp.outputs.url }}.
-            Deployed commit: ${{ github.sha }}. Find the PRs and Monday tickets for this commit
-            (git log, gh pr list --search ${{ github.sha }}) and run their QA scenarios,
-            plus the permanent scenarios in qa.scenarios_dir.
+            Environment: ${{ inputs.environment }}. Deployed commit: ${{ github.sha }}.
+            ${{ inputs.environment == 'dev' && format('Pull request #{0}: run the QA scenarios of this PR and of its Monday ticket, plus the permanent scenarios in qa.scenarios_dir. Post the report on the PR.', github.event.pull_request.number) || '' }}
+            ${{ inputs.environment == 'staging' && 'Find the PRs and Monday tickets for this commit (git log, gh pr list --search <sha>) and run their QA scenarios, plus the permanent scenarios in qa.scenarios_dir.' || '' }}
+            ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR (staging -> main) of this commit.' || '' }}
             Test credentials: QA_USER_EMAIL and QA_USER_PASSWORD variables (never display them).
             Write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
           claude_args: >-
@@ -109,7 +118,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qa-report-${{ github.run_id }}
+          name: qa-report-${{ inputs.environment }}-${{ github.run_id }}
           path: .agentic/runs/qa/
           if-no-files-found: warn
 

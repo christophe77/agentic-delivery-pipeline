@@ -1,9 +1,16 @@
-# Copied by /agentic:pipeline-init. Claude review when a PR is opened and on every push.
+# Copied by /agentic:pipeline-init. On every pull request to staging, in parallel:
+#   - Claude code review (inline comments)
+#   - CI -> deploy the PR to the "dev" environment -> browser QA on dev
+# Both must be green before the human merge into staging.
+# The dev environment is shared: deploys are serialized per package and the last
+# deployed PR wins. If two PRs overlap, re-run the qa-dev job of the one that lost.
+# Remove the ci/dev/qa-dev jobs if the project has no dev environment.
 name: Claude review
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+    branches: [staging]
 
 concurrency:
   group: review-${{ github.event.pull_request.number }}
@@ -29,3 +36,34 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       CONTEXT_REPOS_TOKEN: ${{ secrets.CONTEXT_REPOS_TOKEN }}
+
+  ci:
+    if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/ci.yml@v1
+
+  dev:
+    # Packages deploy to dev only if their deploy.environments lists "dev".
+    needs: ci
+    permissions:
+      contents: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/deploy.yml@v1
+    with:
+      environment: dev
+
+  qa-dev:
+    needs: dev
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/qa.yml@v1
+    with:
+      environment: dev
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+      QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+      QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}

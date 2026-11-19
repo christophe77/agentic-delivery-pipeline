@@ -20,7 +20,7 @@ Parameters:
     Description: Repository name
   Environment:
     Type: String
-    AllowedValues: [staging, production]
+    AllowedValues: [dev, staging, production]
   CreateOidcProvider:
     Type: String
     AllowedValues: ["true", "false"]

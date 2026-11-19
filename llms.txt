@@ -1,6 +1,6 @@
 # Agentic Delivery Pipeline for Claude Code
 
-> Open-source Claude Code plugin and reusable GitHub Actions workflows that automate the software delivery lifecycle with AI agents: epic and tickets in Monday.com, implementation, AI code review on pull requests, browser QA with Playwright, and deployment to AWS (OIDC, no access keys) or GitHub Releases. Humans approve the plan, merge, and approve production. Stack-agnostic (Node.js, NestJS, React, C#/.NET, Go, Flutter, Tauri, C++), monorepos and multi-repo workspaces. MIT license.
+> Open-source Claude Code plugin and reusable GitHub Actions workflows that automate the software delivery lifecycle with AI agents: epic and tickets in Monday.com, implementation, AI code review and browser QA on a dev environment for every pull request, staging deploy and QA, promotion PR staging -> main, production deploy with read-only smoke QA, on AWS (OIDC, no access keys) or GitHub Releases. Humans approve the plan, merge into staging, promote to main, and approve production. Stack-agnostic (Node.js, NestJS, React, C#/.NET, Go, Flutter, Tauri, C++), monorepos and multi-repo workspaces. MIT license.
 
 Key facts:
 - Repository: https://github.com/christophe77/agentic-delivery-pipeline

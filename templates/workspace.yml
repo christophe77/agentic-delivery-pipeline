@@ -27,17 +27,20 @@ repos:
   - name: app
     path: app
     github: my-org/app
-    base_branch: main
+    base_branch: staging
+    production_branch: main
     role: React / Tauri application, MQTT client
   - name: backend
     path: backend
     github: my-org/backend
-    base_branch: main
+    base_branch: staging
+    production_branch: main
     role: NestJS API, authentication, persistence
   - name: firmware
     path: firmware
     github: my-org/firmware
-    base_branch: master
+    base_branch: staging
+    production_branch: master
     role: Embedded C++ service, publishes the machine state over MQTT
   - name: releases
     path: releases

@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: staging | production
+        description: dev | staging | production
         type: string
         required: true
       version:
@@ -34,7 +34,7 @@ jobs:
           CONFIG: ${{ inputs.config-path }}
           TARGET_ENV: ${{ inputs.environment }}
         run: |
-          case "$TARGET_ENV" in staging|production) ;; *) echo "::error::invalid environment: $TARGET_ENV"; exit 1;; esac
+          case "$TARGET_ENV" in dev|staging|production) ;; *) echo "::error::invalid environment: $TARGET_ENV"; exit 1;; esac
           packages=$(yq -o=json -I=0 '[.packages[] | select(.deploy != null) | select((.deploy.environments // ["staging","production"]) | any_c(. == strenv(TARGET_ENV)))]' "$CONFIG")
           echo "packages=$packages" >> "$GITHUB_OUTPUT"
           echo "region=$(yq '.aws.region // "eu-west-3"' "$CONFIG")" >> "$GITHUB_OUTPUT"
@@ -52,6 +52,7 @@ jobs:
     runs-on: ${{ matrix.package.runner || 'ubuntu-latest' }}
     # The environment carries the protection rules (required reviewers in production)
     # and the AWS_ROLE_ARN variable specific to each environment.
+    # "dev" is opt-in: a package deploys there only if deploy.environments lists it.
     environment: ${{ inputs.environment }}
     concurrency:
       group: deploy-${{ inputs.environment }}-${{ matrix.package.name }}
@@ -150,7 +151,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ matrix.package.deploy.tag_prefix || format('{0}-v', matrix.package.name) }}${{ inputs.version || format('{0}.{1}', github.run_number, github.run_attempt) }}
           ARTIFACTS: ${{ matrix.package.deploy.artifacts }}
-          PRERELEASE: ${{ inputs.environment == 'staging' && '--prerelease' || '' }}
+          PRERELEASE: ${{ inputs.environment != 'production' && '--prerelease' || '' }}
         run: |
           shopt -s globstar nullglob
           files=($ARTIFACTS)

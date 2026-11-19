@@ -26,7 +26,7 @@ Look for `.agentic/workspace.yml` in the current folder, then in parent folders.
 - Read the ticket, its updates and its parent epic (Monday MCP). If acceptance criteria are missing or ambiguous, stop and ask.
 - Check that the ticket's dependencies are done.
 - Move the ticket to status `statuses.in_progress`.
-- Branch: `git.branch_pattern` (default `{type}/{item_id}-{slug}`) from an up-to-date `git.base_branch`. Work in a worktree if the session allows it.
+- Branch: `git.branch_pattern` (default `{type}/{item_id}-{slug}`) from an up-to-date `git.base_branch` (default `staging`; never `git.production_branch`). Work in a worktree if the session allows it.
 
 ## 2. Code
 
@@ -40,7 +40,7 @@ Look for `.agentic/workspace.yml` in the current folder, then in parent folders.
 
 - Conventional commits: `feat(api): ... ` with the footer `Monday: #<item_id>`.
 - Push the branch.
-- PR to `git.base_branch` with `gh pr create`, body:
+- PR to `git.base_branch` with `gh pr create` (CI then runs the AI review and, if a `dev` environment exists, deploys the PR to dev and runs browser QA on it), body:
 
 ```
 ## Ticket

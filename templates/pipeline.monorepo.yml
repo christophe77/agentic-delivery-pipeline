@@ -22,7 +22,8 @@ monday:
     done: Done
 
 git:
-  base_branch: main
+  base_branch: staging          # feature PRs target this branch; a merge deploys to staging
+  production_branch: main       # fed by a promotion PR staging -> main; a merge deploys to production
   branch_pattern: "{type}/{item_id}-{slug}"
 
 aws:
@@ -40,11 +41,13 @@ packages:
       build: pnpm turbo run build --filter=api
     deploy:
       target: aws-ecs
+      environments: [dev, staging, production]
       dockerfile: Dockerfile           # relative to path
       context: ../..                 # relative to path, i.e. the monorepo root
       ecr_repository: my-monorepo-api
       ecs:
         container: api
+        dev: { cluster: cluster-dev, service: api-dev, task_family: api-dev }
         staging: { cluster: cluster-staging, service: api-staging, task_family: api-staging }
         production: { cluster: cluster-prod, service: api-prod, task_family: api-prod }
 
@@ -59,6 +62,7 @@ packages:
       build: pnpm turbo run build --filter=portal
     deploy:
       target: command
+      environments: [dev, staging, production]
       aws: true                      # injects the OIDC credentials
       command: pnpm turbo run build --filter=portal && aws s3 sync dist "s3://portal-$TARGET_ENV" --delete && aws cloudfront create-invalidation --distribution-id "$(aws ssm get-parameter --name /portal/$TARGET_ENV/distribution-id --query Parameter.Value --output text)" --paths "/*"
 
@@ -87,8 +91,11 @@ packages:
       build: go build ./...
 
 qa:
+  dev_url: https://portal.dev.example.com            # PR QA, next to the code review
   staging_url: https://portal.staging.example.com
+  production_url: https://portal.example.com            # read-only smoke QA after release
   scenarios_dir: .agentic/qa
+  production_scenarios_dir: .agentic/qa/production   # read-only scenarios only
   credentials_env: [QA_USER_EMAIL, QA_USER_PASSWORD]
 
 gates:
