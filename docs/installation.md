@@ -33,8 +33,8 @@ You type the values yourself: they are prompted for, so they never land in the r
 |---|---|---|---|
 | `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | secret | review, QA | yes |
 | `MONDAY_API_TOKEN` | secret | QA (ticket updates from CI) | no |
-| `QA_USER_EMAIL`, `QA_USER_PASSWORD` | secrets (`staging` environment) | QA | if the app has a login |
-| `AWS_ROLE_ARN` | environment **variable** (`staging`, `production`) | deploy | for AWS targets |
+| `QA_USER_EMAIL`, `QA_USER_PASSWORD` | secrets of each environment (`dev`, `staging`, `production`), one test account per environment | QA | if the app has a login |
+| `AWS_ROLE_ARN` | environment **variable** (`dev`, `staging`, `production`) | deploy | for AWS targets |
 | `CONTEXT_REPOS_TOKEN` | secret | CI review in workspace mode (clones private sibling repos) | if `context-repos` is used |
 
 `CONTEXT_REPOS_TOKEN`: a fine-grained token limited to the sibling repos, with **Contents: read-only** permission only, and an expiry date.
@@ -44,6 +44,7 @@ gh secret set ANTHROPIC_API_KEY
 gh secret set MONDAY_API_TOKEN
 gh secret set QA_USER_EMAIL --env staging
 gh secret set QA_USER_PASSWORD --env staging
+# same for --env dev and --env production (a dedicated read-only test account in production)
 ```
 
 In an organization, prefer organization secrets limited to the relevant repos:
@@ -52,11 +53,28 @@ In an organization, prefer organization secrets limited to the relevant repos:
 ## 4. GitHub environments
 
 ```bash
+gh api -X PUT repos/<owner>/<repo>/environments/dev
 gh api -X PUT repos/<owner>/<repo>/environments/staging
 gh api -X PUT repos/<owner>/<repo>/environments/production
 ```
 
-Then in Settings > Environments > production: set **Required reviewers** and, ideally, limit **Deployment branches** to `main`. This is the human gate before production.
+Then in Settings > Environments:
+- `dev`: deployed from pull requests, so any branch; give it its own AWS role and data, never shared with staging or production;
+- `staging`: limit **Deployment branches** to `staging`;
+- `production`: set **Required reviewers** and limit **Deployment branches** to `main`. This is the human gate before production.
+
+## 4 bis. Branches
+
+```
+feature/* ──PR──▶ staging ──promotion PR──▶ main
+           review + QA dev     QA staging        approval + QA prod
+```
+
+- Create `staging` from `main` if it does not exist, and set it as the default branch so PRs target it.
+- Protect `staging` and `main`: pull request required, required checks green (review, CI, `qa-dev` on `staging`).
+- Merge promotion PRs with a merge commit (not a squash) so both branches stay aligned.
+- Write a few read-only scenarios in `.agentic/qa/production/` (pages load, login, key data visible): they are the only ones run in production.
+- No `dev` environment? Remove the `ci`, `dev` and `qa-dev` jobs from `agentic-review.yml`.
 
 ## 5. AWS (OIDC, no access keys)
 
@@ -73,7 +91,7 @@ Then in Settings > Environments > production: set **Required reviewers** and, id
    gh variable set AWS_ROLE_ARN --env staging --body "arn:aws:iam::<account>:role/gh-my-repo-staging"
    ```
 
-Ideally, staging and production live in two separate AWS accounts.
+Ideally, dev/staging and production live in separate AWS accounts. The `dev` role can be assumed by any pull request of the repo: give it access to the dev resources only.
 
 ## Versioning
 

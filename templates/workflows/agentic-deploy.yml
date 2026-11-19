@@ -1,11 +1,15 @@
 # Copied by /agentic:pipeline-init.
-# push to main -> CI -> staging -> browser QA -> production (human approval)
+# Two long-lived branches, one per environment:
+#   push to staging -> CI -> deploy staging -> browser QA on staging
+#   push to main    -> CI -> deploy production (human approval) -> smoke QA on production
+# main is fed by a promotion PR staging -> main (/agentic:release prepare) after a green staging QA.
 # Can also be run manually: gh workflow run agentic-deploy.yml -f environment=production
+# Adapt the branch names below if git.base_branch / git.production_branch differ.
 name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [staging, main]
   workflow_dispatch:
     inputs:
       environment:
@@ -26,7 +30,9 @@ jobs:
 
   staging:
     needs: ci
-    if: github.event_name == 'push' || inputs.environment == 'staging'
+    if: >-
+      (github.event_name == 'push' && github.ref_name == 'staging') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
     permissions:
       contents: write
       id-token: write
@@ -35,7 +41,7 @@ jobs:
       environment: staging
       version: ${{ inputs.version }}
 
-  qa:
+  qa-staging:
     needs: staging
     permissions:
       contents: read
@@ -43,6 +49,8 @@ jobs:
       issues: write
       id-token: write
     uses: christophe77/agentic-delivery-pipeline/.github/workflows/qa.yml@v1
+    with:
+      environment: staging
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -51,12 +59,12 @@ jobs:
       QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
 
   production:
-    # After a green QA on push, or manually. The "production" GitHub
-    # environment must have required reviewers: that is the human gate.
-    needs: [ci, qa]
+    # On a push to main (merged promotion PR), or manually. The "production"
+    # GitHub environment must have required reviewers: that is the human gate.
+    needs: ci
     if: >-
-      always() && needs.ci.result == 'success' &&
-      (needs.qa.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production'))
+      (github.event_name == 'push' && github.ref_name == 'main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
     permissions:
       contents: write
       id-token: write
@@ -64,3 +72,21 @@ jobs:
     with:
       environment: production
       version: ${{ inputs.version }}
+
+  qa-production:
+    # Read-only smoke QA on production right after the deployment.
+    needs: production
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/qa.yml@v1
+    with:
+      environment: production
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+      QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+      QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}

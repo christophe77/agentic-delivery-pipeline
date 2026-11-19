@@ -6,18 +6,19 @@ Configuration: `.agentic/pipeline.yml`.
 ### Cycle
 1. `/agentic:epic <need>`: epic in Monday (human approval)
 2. `/agentic:tickets <epic id>`: tickets as vertical slices (human approval)
-3. `/agentic:implement <ticket id>`: branch, code, tests, PR
-4. `/agentic:review <PR>`: local review; CI runs a new review on every push
-5. Merge: **human**
-6. Automatic staging deployment, then `/agentic:qa` (CI)
-7. `/agentic:release prepare`: production deployment (GitHub approval required)
-8. `/agentic:release close`: Monday tickets moved to Done
+3. `/agentic:implement <ticket id>`: branch from `staging`, code, tests, PR to `staging`
+4. On the PR (CI): AI review + deploy to `dev` and browser QA on dev; `/agentic:review <PR>` locally
+5. Merge into `staging`: **human**
+6. Automatic staging deployment, then browser QA on staging (CI)
+7. `/agentic:release prepare`: promotion PR `staging` -> `main`; merge (**human**), then production approval (**human**)
+8. Automatic production deployment, then read-only smoke QA on production (CI)
+9. `/agentic:release close`: Monday tickets moved to Done
 
 ### Conventions
 - Branches: `{type}/{item_id}-{slug}` (e.g. `feat/1234567890-export-csv`)
 - Conventional commits, with a `Monday: #<item_id>` footer
 - One PR = one ticket
-- Definition of done: acceptance criteria tested, lint/tests/build green, review with no blocker, QA passed on staging
+- Definition of done: acceptance criteria tested, lint/tests/build green, review with no blocker, QA passed on dev and staging
 
 ### Project commands
 <!-- copied from .agentic/pipeline.yml by /agentic:pipeline-init -->
@@ -25,5 +26,5 @@ Configuration: `.agentic/pipeline.yml`.
 ### Security (non-negotiable)
 - No secrets in the repo: environment variables, GitHub Secrets, AWS SSM / Secrets Manager, .NET user-secrets.
 - Only `.env.example` files with dummy values are versioned.
-- The agent does not read `.env` files, does not deploy to production itself and does not push to `main`.
+- The agent does not read `.env` files, does not deploy to production itself and does not push to `staging` or `main` (pull requests only).
 - AWS only through OIDC from GitHub Actions.

@@ -1,6 +1,6 @@
 # Permanent scenario: login
 
-Copy into the project's `.agentic/qa/`. Run on every staging QA.
+Copy into the project's `.agentic/qa/` (run on every dev and staging QA). It is read-only, so a copy can also go in `.agentic/qa/production/` for the production smoke QA.
 
 1. Open the home page. Expected: no console errors, page loaded in under 3 s.
 2. Click "Sign in". Expected: a form, or a redirect to the identity provider (Cognito).

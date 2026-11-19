@@ -33,7 +33,7 @@ const DANGEROUS_COMMANDS = [
   ["production AWS profile", /--profile[= ]\S*prod/i],
   ["modifying GitHub secrets", /\bgh\s+secret\s+(set|delete)\b/i],
   ["force push", /\bgit\s+push\b[^\n]*\s(--force|-f)(\s|$)/i],
-  ["direct push to the main branch", /\bgit\s+push\b[^\n]*\s(\S+:)?(main|master)(\s|$)/i],
+  ["direct push to a protected branch (staging, main)", /\bgit\s+push\b[^\n]*\s(\S+:)?(main|master|staging)(\s|$)/i],
 ];
 
 function block(reason) {

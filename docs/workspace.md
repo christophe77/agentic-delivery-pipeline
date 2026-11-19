@@ -44,12 +44,14 @@ repos:
   - name: app              # short name used in tickets
     path: app              # relative to the workspace root
     github: my-org/app
-    base_branch: main
+    base_branch: staging
+    production_branch: main
     role: React/Tauri application, MQTT client
   - name: firmware
     path: firmware
     github: my-org/firmware
-    base_branch: master
+    base_branch: staging
+    production_branch: master
     role: Embedded C++ service, publishes machine state over MQTT
   - name: releases
     path: releases
@@ -90,7 +92,7 @@ order: [firmware, app]
 
 **Merge, deploy, QA**
 - Merge in `order`. A consumer is merged only after its producer.
-- Each repo keeps its own deployment. QA starts once every repo of the ticket is deployed to staging.
+- Each repo keeps its own deployment. QA (dev, then staging) starts once every repo of the ticket is deployed to that environment; promotion PRs `staging` → `main` are merged in `order`.
 - In workspace mode, `/agentic:release` prepares a coordinated release: per-repo list, deploy order, shared Monday tickets.
 
 ## Multi-repo guardrails

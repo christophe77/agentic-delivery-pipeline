@@ -10,17 +10,17 @@ Principle: **the agent never has access to a secret, and no secret is ever commi
 |---|---|---|
 | Anthropic API key / Claude OAuth token | GitHub Secrets (repo or organization) | CI runner only |
 | Monday.com token (CI) | GitHub Secrets | CI runner, injected when the MCP server starts |
-| QA test credentials | GitHub Secrets of the `staging` environment | QA job only |
+| QA test credentials | GitHub Secrets of each environment (`dev`, `staging`, `production`), one test account each | QA job only |
 | AWS access | **no secret**: OIDC, temporary credentials valid for 1 hour | jobs of the matching environment |
 | Application secrets (database, Stripe, Cognito...) | AWS Secrets Manager / SSM, referenced by the ECS task definition | the running application |
 | Local machine | Claude OAuth connectors, uncommitted `.env` files, .NET user-secrets | you |
 
 ## Defense in depth
 
-1. **Local guard hook** (`scripts/guard.mjs`, PreToolUse): blocks reading `.env` files, keys, `~/.aws/credentials` and `*secret*` files; blocks writing content that looks like an AWS, Anthropic, GitHub, Stripe live or Slack credential, a JWT or a private key; blocks `printenv`, `aws configure`, `gh secret set`, manual production deploys, force pushes and direct pushes to `main`.
+1. **Local guard hook** (`scripts/guard.mjs`, PreToolUse): blocks reading `.env` files, keys, `~/.aws/credentials` and `*secret*` files; blocks writing content that looks like an AWS, Anthropic, GitHub, Stripe live or Slack credential, a JWT or a private key; blocks `printenv`, `aws configure`, `gh secret set`, manual production deploys, force pushes and direct pushes to `staging` or `main`.
 2. **gitleaks scan** on every pull request and push (`secret-scan.yml`): CI fails if a secret enters the history.
-3. **OIDC roles** restricted to `repo:<owner>/<repo>:environment:<env>`: a branch or a pull request cannot assume the production role.
-4. **`production` environment** with required reviewers: no production deploy without human approval.
+3. **OIDC roles** restricted to `repo:<owner>/<repo>:environment:<env>`: a branch or a pull request cannot assume the staging or production role. Pull requests assume the `dev` role only: keep it limited to dev resources.
+4. **`production` environment** with required reviewers: no production deploy without human approval. Production QA is read-only (no creation, edit, deletion, payment or message).
 5. **Security review** by the `security-reviewer` subagent on every pull request.
 6. **No review on fork pull requests**: their workflows get no access to secrets.
 7. **Least-privilege permissions** declared job by job in the workflows.

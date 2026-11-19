@@ -22,7 +22,8 @@ monday:
     done: Done
 
 git:
-  base_branch: main
+  base_branch: staging          # feature PRs target this branch; a merge deploys to staging
+  production_branch: main       # fed by a promotion PR staging -> main; a merge deploys to production
   branch_pattern: "{type}/{item_id}-{slug}"
 
 aws:
@@ -41,12 +42,16 @@ packages:
       build: npm run build
     deploy:
       target: aws-ecs
-      environments: [staging, production]
+      environments: [dev, staging, production]
       dockerfile: Dockerfile
       context: .
       ecr_repository: my-backend-api
       ecs:
         container: api
+        dev:
+          cluster: my-cluster-dev
+          service: api-dev
+          task_family: api-dev
         staging:
           cluster: my-cluster-staging
           service: api-staging
@@ -57,8 +62,11 @@ packages:
           task_family: api-prod
 
 qa:
+  dev_url: https://api.dev.example.com            # PR QA, next to the code review
   staging_url: https://api.staging.example.com
+  production_url: https://api.example.com            # read-only smoke QA after release
   scenarios_dir: .agentic/qa
+  production_scenarios_dir: .agentic/qa/production   # read-only scenarios only
   credentials_env: [QA_USER_EMAIL, QA_USER_PASSWORD]
 
 gates:

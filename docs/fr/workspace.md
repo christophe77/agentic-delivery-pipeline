@@ -43,12 +43,14 @@ repos:
   - name: app              # nom court utilisé dans les tickets
     path: app              # relatif à la racine du workspace
     github: mon-org/app
-    base_branch: main
+    base_branch: staging
+    production_branch: main
     role: Application React/Tauri, client MQTT
   - name: firmware
     path: firmware
     github: mon-org/firmware
-    base_branch: master
+    base_branch: staging
+    production_branch: master
     role: Service embarqué C++, publie l'état machine en MQTT
   - name: releases
     path: releases
@@ -89,7 +91,7 @@ order: [firmware, app]
 
 **Merge, déploiement, QA**
 - Merge dans l'ordre `order`. Le consommateur n'est mergé qu'après le producteur.
-- Chaque repo garde son propre déploiement. La QA se lance quand tous les repos du ticket sont déployés en staging.
+- Chaque repo garde son propre déploiement. La QA (dev, puis staging) se lance quand tous les repos du ticket sont déployés sur cet environnement ; les PR de promotion `staging` → `main` sont mergées dans l'`order`.
 - `/agentic:release` en mode workspace prépare une release coordonnée : liste par repo, ordre de déploiement, tickets Monday communs.
 
 ## Garde-fous propres au multi-repo

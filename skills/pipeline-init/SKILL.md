@@ -50,7 +50,9 @@ Ask the user for what you cannot infer, in a single grouped question:
 - Monday board ID (argument `$ARGUMENTS` if provided) and exact labels of the status column;
 - deployment target of each package (`aws-ecs`, `github-release`, `command`, or none);
 - AWS region, ECS cluster / service / task definition family names;
-- staging URL for QA.
+- branch model: `git.base_branch` (default `staging`, PR target, deploys to staging) and `git.production_branch` (default `main`, deploys to production); if `staging` does not exist, propose creating it from the production branch (`git push origin <prod>:refs/heads/staging`, after a yes);
+- whether a shared `dev` environment exists (PR deploy + QA next to the review); if not, remove the `ci`, `dev` and `qa-dev` jobs from `agentic-review.yml`;
+- QA URLs: `qa.dev_url`, `qa.staging_url`, `qa.production_url`, and a few read-only production scenarios in `qa.production_scenarios_dir`.
 
 Use the Monday MCP tools to read the board (columns and statuses) rather than asking, whenever possible.
 
@@ -58,7 +60,7 @@ Use the Monday MCP tools to read the board (columns and statuses) rather than as
 
 ## 3. Copy the calling workflows
 
-Copy `templates/workflows/agentic-*.yml` into `.github/workflows/`. Replace `@v1` with the desired toolkit version. Do not touch existing workflows: flag duplicates (an existing CI) and let the user choose.
+Copy `templates/workflows/agentic-*.yml` into `.github/workflows/`. Replace `@v1` with the desired toolkit version, and `staging` / `main` in the `branches:` filters if the branch names differ. Do not touch existing workflows: flag duplicates (an existing CI) and let the user choose.
 
 ## 4. CLAUDE.md
 
@@ -73,13 +75,16 @@ Display the commands that **the user** runs themselves, with values entered at t
 ```bash
 gh secret set ANTHROPIC_API_KEY          # or CLAUDE_CODE_OAUTH_TOKEN
 gh secret set MONDAY_API_TOKEN           # optional: QA and release update Monday from CI
-gh api -X PUT repos/{owner}/{repo}/environments/staging
-gh api -X PUT repos/{owner}/{repo}/environments/production   # then add required reviewers in Settings
+gh api -X PUT repos/{owner}/{repo}/environments/dev          # if a dev environment exists (PR deploys)
+gh api -X PUT repos/{owner}/{repo}/environments/staging      # deployment branches: staging
+gh api -X PUT repos/{owner}/{repo}/environments/production   # required reviewers + deployment branches: main
+gh secret set QA_USER_EMAIL --env <dev|staging|production>   # one test account per environment (same for QA_USER_PASSWORD)
+gh variable set AWS_ROLE_ARN --env dev --body "arn:aws:iam::<account>:role/<dev-role>"
 gh variable set AWS_ROLE_ARN --env staging --body "arn:aws:iam::<account>:role/<staging-role>"
 gh variable set AWS_ROLE_ARN --env production --body "arn:aws:iam::<account>:role/<prod-role>"
 ```
 
-Remind the user about deploying the OIDC role: `docs/installation.md` in the toolkit, AWS section.
+Recommend branch protection on `staging` and `main` (PR required, green checks: review, CI, QA dev). Remind the user about deploying the OIDC role: `docs/installation.md` in the toolkit, AWS section.
 
 ## 6. Summary
 
