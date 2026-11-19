@@ -76,6 +76,19 @@ feature/* ──PR──▶ staging ──promotion PR──▶ main
 - Write a few read-only scenarios in `.agentic/qa/production/` (pages load, login, key data visible): they are the only ones run in production.
 - No `dev` environment? Remove the `ci`, `dev` and `qa-dev` jobs from `agentic-review.yml`.
 
+### Three branches (develop / staging / main)
+
+```
+feature/* ──PR──▶ develop ──promotion PR──▶ staging ──promotion PR──▶ main
+           review     deploy + QA dev     deploy + QA staging    deploy + QA prod
+```
+
+In `pipeline.yml`: `git.base_branch: develop`, `git.staging_branch: staging`, `git.production_branch: main`. Promotions: `/agentic:release prepare staging` then `/agentic:release prepare production`. In `agentic-review.yml`, set `branches: [develop]` and keep only the `review` job.
+
+### Keeping your own deploy workflow
+
+If the project already deploys with its own workflow (for example "on PR merged into develop / staging / main"), keep it and do not copy `agentic-deploy.yml`. Append the job from `templates/workflows/agentic-qa-job.yml` at the end of it: QA then runs right after each successful deployment, in the matching mode (dev, staging, read-only production). Adapt `needs:` to your deploy job and the GitHub environment names (`github-environment`, e.g. `development`).
+
 ## 5. AWS (OIDC, no access keys)
 
 1. Create the deploy policy from `infra/aws/ecs-deploy-policy.json` (replace REGION, ACCOUNT_ID, REPOSITORY and role names):

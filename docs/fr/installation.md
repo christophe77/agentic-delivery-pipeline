@@ -86,6 +86,19 @@ feature/* ──PR──▶ staging ──PR de promotion──▶ main
 - Écris quelques scénarios en lecture seule dans `.agentic/qa/production/` (pages qui chargent, connexion, données clés visibles) : ce sont les seuls joués en prod.
 - Pas d'environnement `dev` ? Supprime les jobs `ci`, `dev` et `qa-dev` de `agentic-review.yml`.
 
+### Trois branches (develop / staging / main)
+
+```
+feature/* ──PR──▶ develop ──PR de promotion──▶ staging ──PR de promotion──▶ main
+           revue     déploiement + QA dev    déploiement + QA staging   déploiement + QA prod
+```
+
+Dans `pipeline.yml` : `git.base_branch: develop`, `git.staging_branch: staging`, `git.production_branch: main`. Promotions : `/agentic:release prepare staging` puis `/agentic:release prepare production`. Dans `agentic-review.yml`, mets `branches: [develop]` et ne garde que le job `review`.
+
+### Garder ton propre workflow de déploiement
+
+Si le projet déploie déjà avec son propre workflow (par exemple « au merge d'une PR dans develop / staging / main »), garde-le et ne copie pas `agentic-deploy.yml`. Ajoute à la fin le job de `templates/workflows/agentic-qa-job.yml` : la QA tourne alors juste après chaque déploiement réussi, dans le bon mode (dev, staging, prod en lecture seule). Adapte `needs:` à ton job de déploiement et les noms d'environnements GitHub (`github-environment`, par exemple `development`).
+
 ## 6. AWS (OIDC, sans clé d'accès)
 
 1. Crée la politique de déploiement à partir de `infra/aws/ecs-deploy-policy.json` (remplace REGION, ACCOUNT_ID, REPOSITORY, noms de rôles) :

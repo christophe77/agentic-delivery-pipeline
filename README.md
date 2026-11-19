@@ -41,7 +41,7 @@ flowchart LR
     J --> K["/agentic:release close<br/>Tickets Done"]
 ```
 
-Two long-lived branches, one per environment: `staging` receives the feature PRs, `main` only receives promotion PRs from `staging`. Each pull request is also deployed to a shared `dev` environment so it can be tested in a browser while it is reviewed.
+Two long-lived branches, one per environment: `staging` receives the feature PRs, `main` only receives promotion PRs from `staging`. Each pull request is also deployed to a shared `dev` environment so it can be tested in a browser while it is reviewed. A three-branch model (`develop` → `staging` → `main`) and projects that keep their own deploy workflow are supported too: see [docs/installation.md](docs/installation.md#three-branches-develop--staging--main).
 
 | Step | Command or trigger | What the agent does | Human gate |
 |---|---|---|---|
