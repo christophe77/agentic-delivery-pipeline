@@ -29,11 +29,11 @@ Sources, in this order:
 2. Files `qa.scenarios_dir/*.md` (permanent regression flows: login, critical path...);
 3. If nothing exists, infer 3 to 5 flows from the diff and say so in the report.
 
-Test credentials come from the environment variables listed in `qa.credentials_env` (e.g. `QA_USER_EMAIL`, `QA_USER_PASSWORD`), never from the repo, and are specific to each GitHub environment. Never type or print their values: fill login forms with Playwright code that reads `process.env` (in CI, Playwright MCP also masks them in its responses). Use only test accounts. On dev and staging, run the mutating steps of the scenarios end to end (create, edit, submit, adjust, refund) and check their result: not mutating test data is not a valid reason to skip a scenario; skip only what would reach real people or real money, and report it. In production, run **only** read-only checks: no creation, edit, deletion, payment or message; pass "production smoke" to the `qa-tester` subagent and skip (and report) any mutating step.
+Test credentials come from the environment variables listed in `qa.credentials_env` (e.g. `QA_USER_EMAIL`, `QA_USER_PASSWORD`), never from the repo, and are specific to each GitHub environment. Never type or print their values. With Playwright MCP started with `--secrets` (CI), call `browser_type` with the secret **name** (`QA_USER_EMAIL`, `QA_USER_PASSWORD`): it types the real value and masks it in its responses. Locally, use Playwright code that reads `process.env`. Use only test accounts. On dev and staging, run the mutating steps of the scenarios end to end (create, edit, submit, adjust, refund) and check their result: not mutating test data is not a valid reason to skip a scenario; skip only what would reach real people or real money, and report it. In production, run **only** read-only checks: no creation, edit, deletion, payment or message; pass "production smoke" to the `qa-tester` subagent and skip (and report) any mutating step.
 
 ## 2. Execute
 
-Delegate to the `qa-tester` subagent, one scenario at a time:
+Delegate to the `qa-tester` subagent, one scenario at a time, in the foreground (in CI, a background subagent never reports back once you end your turn):
 - navigate, act, check the expected result;
 - screenshot at each check;
 - record console errors and failed network requests (4xx/5xx);

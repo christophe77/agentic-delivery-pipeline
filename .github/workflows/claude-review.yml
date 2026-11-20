@@ -57,12 +57,13 @@ jobs:
           path: .agentic-toolkit
 
       # Workspace mode: clone the sibling repos (same branch as the PR if it
-      # exists, otherwise the default branch) to check the other side of contracts.
+      # exists, then the PR base branch, otherwise the default branch) to check the other side of contracts.
       - name: Sibling repos (context)
         if: inputs.context-repos != ''
         env:
           REPOS: ${{ inputs.context-repos }}
           HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
           TOKEN: ${{ secrets.CONTEXT_REPOS_TOKEN || github.token }}
         run: |
           mkdir -p .agentic-context
@@ -72,6 +73,9 @@ jobs:
             if git ls-remote --exit-code --heads "$url" "$HEAD_REF" >/dev/null 2>&1; then
               git clone -q --depth 1 --branch "$HEAD_REF" "$url" "$dest"
               echo "$repo: branch $HEAD_REF (likely linked PR)"
+            elif git ls-remote --exit-code --heads "$url" "$BASE_REF" >/dev/null 2>&1; then
+              git clone -q --depth 1 --branch "$BASE_REF" "$url" "$dest"
+              echo "$repo: branch $BASE_REF (same base as the PR)"
             else
               git clone -q --depth 1 "$url" "$dest" || { echo "::warning::$repo not accessible"; continue; }
               echo "$repo: default branch"
@@ -121,6 +125,9 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         id: claude
+        env:
+          # Background subagents never report back in a one-shot CI session.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -137,6 +144,7 @@ jobs:
             You run non-interactively: nobody can answer a question. Never stop to ask. If the Monday ticket
             or its acceptance criteria cannot be read, say so in the summary and review the code anyway.
             Always finish by posting the summary comment with gh pr comment, even when there are no findings.
+            Run every subagent in the foreground (never in the background) and wait for its result before going on: the job stops as soon as you end your turn, so a background subagent never reports back.
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --model ${{ inputs.model }}

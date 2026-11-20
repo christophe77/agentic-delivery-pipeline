@@ -130,7 +130,8 @@ jobs:
             monday=''
           fi
           # Test credentials in a dotenv file outside the workspace (never uploaded): Playwright MCP
-          # replaces these values with their names in its tool responses, so they stay out of the transcript.
+          # types the value when browser_type receives the secret NAME (e.g. QA_USER_PASSWORD) and replaces
+          # the values with their names in its tool responses, so they stay out of the transcript.
           secrets_file="$RUNNER_TEMP/qa-secrets.env"
           : > "$secrets_file"
           [ -z "$QA_USER_EMAIL" ] || printf 'QA_USER_EMAIL=%s\n' "$QA_USER_EMAIL" >> "$secrets_file"
@@ -143,6 +144,8 @@ jobs:
         if: steps.config.outputs.skip != 'true'
         env:
           MCP_TIMEOUT: "120000"
+          # Background subagents never report back in a one-shot CI session.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"
           MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
           QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
           QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
@@ -157,8 +160,9 @@ jobs:
             ${{ inputs.environment == 'staging' && 'Find the PRs and Monday tickets included in this deployment (the triggering PR if it is a promotion PR, git log, gh pr list --search <sha>) and run their QA scenarios, plus the permanent scenarios in qa.scenarios_dir.' || '' }}
             ${{ inputs.environment != 'production' && 'Dev and staging are test environments and you use a test account: exercise the mutating flows of the scenarios end to end (create, edit, delete, submit, adjust, refund), with test data and the payment provider''s test mode. A scenario whose main action is a write is not covered until that write has been submitted and its result checked. Skip only a step that would reach real people or real money (an email or notification to a real customer, a live payment), and report it as NOT RUN with the reason.' || '' }}
             ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR of this deployment.' || '' }}
-            Test credentials: environment variables QA_USER_EMAIL and QA_USER_PASSWORD (never display them). To fill the login form, run Playwright code through the Playwright MCP tools that reads process.env.QA_USER_EMAIL / process.env.QA_USER_PASSWORD; never type the values yourself.
+            Test credentials: to log in, call browser_type (one field at a time) with the literal text QA_USER_EMAIL in the email field and QA_USER_PASSWORD in the password field. Playwright MCP was started with --secrets: it replaces these secret names with the real values when typing, and masks the values in its responses. You never see or need the values. Do not use process.env or browser_run_code for the login: the MCP sandbox has no process.
             Save every screenshot and evidence file under .agentic/runs/qa/ (the folder published as the run artifact) and write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
+            Run every subagent in the foreground (never in the background) and wait for its result before going on: the job stops as soon as you end your turn, so a background subagent never reports back.
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --model ${{ inputs.model }}
