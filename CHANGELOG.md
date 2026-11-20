@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Versions follow [Semant
 ### Fixed
 - CI review: a run could end green without posting anything (kadeya-portal #650 and #651: 13 to 17 turns, no comment). The prompt now states that the run is non-interactive, that a missing ticket or criteria goes in the summary, and that the summary comment is always posted.
 - CI review: a "Review posted" step fails the job when Claude posted no comment, instead of a silent green run.
+- CI review: the PR's Monday ticket (Monday URL, `Monday #id` or `MON-id` in the description, or an ID in the branch name) is fetched by a shell step before Claude starts, into `.agentic/runs/monday-ticket.md`, and read first. New optional secret `MONDAY_API_TOKEN` for `claude-review.yml`: the token never reaches the agent and no tokens are spent looking for the ticket.
 - CI review: Claude's transcript (`execution_file`, hidden by the action) is uploaded as the `claude-review-transcript` artifact, kept 7 days.
 
 ## [0.3.3] - 2026-11-20

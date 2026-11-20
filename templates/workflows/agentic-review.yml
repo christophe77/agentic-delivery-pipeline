@@ -35,6 +35,7 @@ jobs:
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
       CONTEXT_REPOS_TOKEN: ${{ secrets.CONTEXT_REPOS_TOKEN }}
 
   ci:
