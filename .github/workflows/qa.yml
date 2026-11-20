@@ -37,6 +37,10 @@ on:
       max-turns:
         type: number
         default: 60
+      model:
+        description: "Claude model for the QA run"
+        type: string
+        default: claude-sonnet-5-5
     secrets:
       ANTHROPIC_API_KEY:
         required: false
@@ -156,6 +160,7 @@ jobs:
             Save every screenshot and evidence file under .agentic/runs/qa/ (the folder published as the run artifact) and write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
           claude_args: >-
             --plugin-dir .agentic-toolkit
+            --model ${{ inputs.model }}
             --mcp-config .agentic/runs/mcp.json
             --max-turns ${{ inputs.max-turns }}
             --allowedTools "Read,Write,Grep,Glob,Task,mcp__playwright,mcp__monday,Bash(git log:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr comment:*)"

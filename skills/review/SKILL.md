@@ -25,7 +25,7 @@ In CI, if neighboring repos are cloned into `.agentic-context/`, use them to che
 ## 2. Analyze in parallel
 
 Launch these subagents in the same message:
-- `reviewer`: bugs, edge cases, regressions, error handling, concurrency, obvious performance issues, consistency with nearby code.
+- `reviewer`: bugs, edge cases, regressions, error handling, concurrency, obvious performance issues, consistency with nearby code. Push on the cases a diff hides: timeouts and unknown outcomes (a request that may have succeeded), retries and idempotency keys, state that survives a navigation, a user switch or a remount, money and quantity limits, malformed backend data.
 - `security-reviewer`: secrets, injections, authz/authn, sensitive data in logs, dependencies, IaC.
 
 Then yourself: is each acceptance criterion implemented **and** tested?
@@ -33,6 +33,8 @@ Then yourself: is each acceptance criterion implemented **and** tested?
 ## 3. Verify
 
 For each finding, reread the actual code around the line and discard anything that cannot be demonstrated (a concrete failure scenario is required). No style remarks already covered by the linter.
+
+Verification removes false positives, not small issues: a demonstrable minor finding is reported as **minor**, never dropped. Classify each one: **blocker** (wrong behavior on a main path, data or money at risk, security hole), **major** (wrong behavior on a realistic edge case), **minor** (rare edge case, misleading message, robustness), **note** (product or design question, not a bug of the PR). In CI you cannot run the tests or the build: say so, and reason about them from the code.
 
 ## 4. Report
 
