@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.6] - 2026-11-20
+
+### Fixed
+- CI review: sibling context repos were always cloned on their default branch. The branch lookup (`git ls-remote`) ran inside the checkout, where the auth header set by `actions/checkout` (the calling repo's token) overrides the token in the URL, so the lookup always failed. It now runs outside the checkout. On kadeya-portal #650, the backend was read on `main` instead of `develop`, and the review could not check SJ-BE-3.
+
 ## [0.3.5] - 2026-11-20
 
 ### Fixed

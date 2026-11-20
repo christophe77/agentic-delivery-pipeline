@@ -67,13 +67,15 @@ jobs:
           TOKEN: ${{ secrets.CONTEXT_REPOS_TOKEN || github.token }}
         run: |
           mkdir -p .agentic-context
+          # ls-remote runs outside the checkout: inside it, the auth header set by actions/checkout
+          # (this repo's token) overrides the token in the URL, and every branch lookup fails.
           for repo in $REPOS; do
             dest=".agentic-context/${repo#*/}"
             url="https://x-access-token:${TOKEN}@github.com/${repo}.git"
-            if git ls-remote --exit-code --heads "$url" "$HEAD_REF" >/dev/null 2>&1; then
+            if git -C "$RUNNER_TEMP" ls-remote --exit-code --heads "$url" "$HEAD_REF" >/dev/null 2>&1; then
               git clone -q --depth 1 --branch "$HEAD_REF" "$url" "$dest"
               echo "$repo: branch $HEAD_REF (likely linked PR)"
-            elif git ls-remote --exit-code --heads "$url" "$BASE_REF" >/dev/null 2>&1; then
+            elif git -C "$RUNNER_TEMP" ls-remote --exit-code --heads "$url" "$BASE_REF" >/dev/null 2>&1; then
               git clone -q --depth 1 --branch "$BASE_REF" "$url" "$dest"
               echo "$repo: branch $BASE_REF (same base as the PR)"
             else
