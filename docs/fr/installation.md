@@ -97,7 +97,9 @@ Dans `pipeline.yml` : `git.base_branch: develop`, `git.staging_branch: staging`,
 
 ### Garder ton propre workflow de déploiement
 
-Si le projet déploie déjà avec son propre workflow (par exemple « au merge d'une PR dans develop / staging / main »), garde-le et ne copie pas `agentic-deploy.yml`. Ajoute à la fin le job de `templates/workflows/agentic-qa-job.yml` : la QA tourne alors juste après chaque déploiement réussi, dans le bon mode (dev, staging, prod en lecture seule). Adapte `needs:` à ton job de déploiement et les noms d'environnements GitHub (`github-environment`, par exemple `development`).
+Si le projet déploie déjà avec son propre workflow (par exemple « au merge d'une PR dans develop / staging / main »), garde-le et ne copie pas `agentic-deploy.yml`. Ajoute `templates/workflows/qa-after-deploy.yml` sous le nom `.github/workflows/agentic-qa.yml`. Il est déclenché par `workflow_run` à la fin de ton workflow de déploiement, retrouve la PR mergée et lance la QA dans le bon mode (dev, staging, prod en lecture seule). Mets dans `workflows:` le `name:` de ton workflow de déploiement, et associe les branches aux noms d'environnements GitHub (par exemple `development`).
+
+Pourquoi un workflow séparé : claude-code-action ne s'exécute que si le workflow qui l'appelle est identique sur la branche par défaut. Un job QA placé dans le workflow de déploiement est sauté dès que quelqu'un modifie ce workflow sur `develop` (une nouvelle variable de build, par exemple). Un workflow `workflow_run` s'exécute toujours depuis la branche par défaut, donc il n'est pas concerné. Merge-le d'abord sur la branche par défaut. L'ancien snippet `agentic-qa-job.yml`, ajouté au workflow de déploiement, fonctionne toujours, mais avec cette contrainte.
 
 ## 6. AWS (OIDC, sans clé d'accès)
 

@@ -87,7 +87,9 @@ In `pipeline.yml`: `git.base_branch: develop`, `git.staging_branch: staging`, `g
 
 ### Keeping your own deploy workflow
 
-If the project already deploys with its own workflow (for example "on PR merged into develop / staging / main"), keep it and do not copy `agentic-deploy.yml`. Append the job from `templates/workflows/agentic-qa-job.yml` at the end of it: QA then runs right after each successful deployment, in the matching mode (dev, staging, read-only production). Adapt `needs:` to your deploy job and the GitHub environment names (`github-environment`, e.g. `development`).
+If the project already deploys with its own workflow (for example "on PR merged into develop / staging / main"), keep it and do not copy `agentic-deploy.yml`. Add `templates/workflows/qa-after-deploy.yml` as `.github/workflows/agentic-qa.yml`. It is triggered by `workflow_run` when your deploy workflow completes, finds the merged PR, and runs QA in the matching mode (dev, staging, read-only production). Set `workflows:` to the `name:` of your deploy workflow, and map the branches to the GitHub environment names (e.g. `development`).
+
+Why a separate workflow: claude-code-action only runs when the workflow file that calls it is identical on the default branch. A QA job inside the deploy workflow is skipped as soon as someone changes that workflow on `develop` (a new build variable, for example). A `workflow_run` workflow always runs from the default branch, so it is not affected. Merge it on the default branch first. The older snippet `agentic-qa-job.yml`, which is appended to the deploy workflow, still works, but under that constraint.
 
 ## 5. AWS (OIDC, no access keys)
 

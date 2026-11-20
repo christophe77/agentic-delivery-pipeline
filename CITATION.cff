@@ -8,7 +8,7 @@ authors:
     given-names: Christophe
 repository-code: "https://github.com/christophe77/agentic-delivery-pipeline"
 license: MIT
-version: 0.3.6
+version: 0.3.7
 date-released: 2026-11-19
 keywords:
   - claude-code

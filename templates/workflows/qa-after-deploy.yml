@@ -1,0 +1,85 @@
+# Agentic pipeline: browser QA after each deployment, as a standalone workflow.
+# Copy it to .github/workflows/agentic-qa.yml, on the default branch first.
+# For projects that keep their own deploy workflow. Prefer this over appending
+# the agentic-qa-job.yml snippet to the deploy workflow:
+#   - a workflow_run workflow always runs from its copy on the default branch, so
+#     claude-code-action's workflow validation (the calling file must be identical
+#     on the default branch) always passes;
+#   - developers can change the deploy workflow without breaking the QA.
+#
+# Adapt:
+#   - `workflows:` to the exact `name:` of the deploy workflow;
+#   - the branch -> QA environment and GitHub environment mappings in "Deployed PR".
+name: Agentic QA
+
+on:
+  workflow_run:
+    workflows: ["Deploy"]               # <- `name:` of the existing deploy workflow
+    types: [completed]
+
+jobs:
+  resolve:
+    # Only after a successful deployment started by a pull request event
+    # (deploy-on-merge workflows: runs for unmerged PRs end up skipped).
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      base: ${{ steps.pr.outputs.base }}
+      commit: ${{ steps.pr.outputs.commit }}
+      environment: ${{ steps.pr.outputs.environment }}
+      github-environment: ${{ steps.pr.outputs.github_environment }}
+    steps:
+      - name: Deployed PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --state merged --head "$HEAD_BRANCH" \
+            --json number,baseRefName,mergeCommit,mergedAt --jq 'sort_by(.mergedAt) | last // empty')
+          if [ -z "$pr" ]; then
+            echo "::notice::No merged PR for branch $HEAD_BRANCH: nothing to QA."
+            exit 0
+          fi
+          base=$(echo "$pr" | jq -r .baseRefName)
+          case "$base" in
+            develop) env=dev;        gh_env=development ;;
+            staging) env=staging;    gh_env=staging ;;
+            main)    env=production; gh_env=production ;;
+            *) echo "::notice::PR merged into $base: no QA environment."; exit 0 ;;
+          esac
+          {
+            echo "number=$(echo "$pr" | jq -r .number)"
+            echo "base=$base"
+            echo "commit=$(echo "$pr" | jq -r .mergeCommit.oid)"
+            echo "environment=$env"
+            echo "github_environment=$gh_env"
+          } >> "$GITHUB_OUTPUT"
+          echo "QA $env for PR #$(echo "$pr" | jq -r .number) (merged into $base)"
+
+  qa:
+    needs: resolve
+    if: needs.resolve.outputs.number != ''
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    uses: christophe77/agentic-delivery-pipeline/.github/workflows/qa.yml@v1
+    with:
+      environment: ${{ needs.resolve.outputs.environment }}
+      github-environment: ${{ needs.resolve.outputs.github-environment }}
+      commit: ${{ needs.resolve.outputs.commit }}
+      pr-number: ${{ needs.resolve.outputs.number }}
+      pr-base: ${{ needs.resolve.outputs.base }}
+    # Secrets passed explicitly: `secrets: inherit` does not work across
+    # accounts/organizations (toolkit on one account, project on another).
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+      QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
+      QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
