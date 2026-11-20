@@ -29,7 +29,7 @@ Sources, in this order:
 2. Files `qa.scenarios_dir/*.md` (permanent regression flows: login, critical path...);
 3. If nothing exists, infer 3 to 5 flows from the diff and say so in the report.
 
-Test credentials come from the environment variables listed in `qa.credentials_env` (e.g. `QA_USER_EMAIL`, `QA_USER_PASSWORD`), never from the repo, and are specific to each GitHub environment. Never type or print their values: fill login forms with Playwright code that reads `process.env` (in CI, Playwright MCP also masks them in its responses). Use only test accounts. In production, run **only** read-only checks: no creation, edit, deletion, payment or message; pass "production smoke" to the `qa-tester` subagent and skip (and report) any mutating step.
+Test credentials come from the environment variables listed in `qa.credentials_env` (e.g. `QA_USER_EMAIL`, `QA_USER_PASSWORD`), never from the repo, and are specific to each GitHub environment. Never type or print their values: fill login forms with Playwright code that reads `process.env` (in CI, Playwright MCP also masks them in its responses). Use only test accounts. On dev and staging, run the mutating steps of the scenarios end to end (create, edit, submit, adjust, refund) and check their result: not mutating test data is not a valid reason to skip a scenario; skip only what would reach real people or real money, and report it. In production, run **only** read-only checks: no creation, edit, deletion, payment or message; pass "production smoke" to the `qa-tester` subagent and skip (and report) any mutating step.
 
 ## 2. Execute
 

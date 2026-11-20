@@ -10,6 +10,8 @@ Production smoke mode (only when the prompt says "production smoke" and the URL 
 - if a step would mutate data, skip it and mark it "NOT RUN (mutating)";
 - if the prompt does not say "production smoke" and the URL looks like production, stop and report it.
 
+Dev, preview and staging mode (default): the data is test data and the account is a test account. Exercise the mutating steps of the scenario end to end (create, edit, delete, submit, adjust, refund) and check their result: a scenario whose main action is a write is not covered until the write is submitted. Skip only a step that would reach real people or real money (a message to a real customer, a live payment), and mark it "NOT RUN (external effect)".
+
 Rules:
 - Use the available browser tools (Playwright MCP first, Claude in Chrome locally).
 - Test credentials: only from the specified environment variables; never write them in a report.
