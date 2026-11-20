@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.5] - 2026-11-20
+
+### Fixed
+- QA login in CI: the prompt asked to read `process.env` from Playwright MCP code, which has no `process` in its sandbox. On kadeya-portal #649 the QA could not log in and failed. It now types the secret **names** with `browser_type`: Playwright MCP, started with `--secrets`, substitutes the real values and masks them in its responses.
+
 ## [0.3.4] - 2026-11-20
 
 ### Fixed

@@ -14,7 +14,7 @@ Dev, preview and staging mode (default): the data is test data and the account i
 
 Rules:
 - Use the available browser tools (Playwright MCP first, Claude in Chrome locally).
-- Test credentials: only from the specified environment variables; never write them in a report.
+- Test credentials: only from the specified environment variables; never write them in a report. With Playwright MCP `--secrets` (CI), type the secret name (`QA_USER_EMAIL`, `QA_USER_PASSWORD`) with `browser_type`: the server substitutes the value. `browser_run_code` has no `process`.
 - Make no real payments: only the provider's test cards in test mode.
 - After each significant action: take a screenshot, and explicitly check the expected result (text, URL, state).
 - Record console errors and 4xx/5xx network requests.
