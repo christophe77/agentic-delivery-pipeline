@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.3] - 2026-11-20
+
+### Changed
+- QA on dev and staging runs the mutating steps of the scenarios end to end (create, edit, submit, adjust, refund) with the test account and the payment provider's test mode, and checks their result. On kadeya-portal PR #647 the dev QA skipped the wallet adjustment and refund submissions to avoid mutating dev data. Only steps that reach real people or real money are skipped, and reported. Production stays read-only.
+
 ## [0.3.2] - 2026-11-20
 
 ### Changed

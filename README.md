@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://docs.anthropic.com/en/docs/claude-code)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-reusable%20workflows-2088FF)](.github/workflows)
-[![Version](https://img.shields.io/badge/version-0.3.2-informational)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.3-informational)](CHANGELOG.md)
 
 English | [Français](README.fr.md)
 
