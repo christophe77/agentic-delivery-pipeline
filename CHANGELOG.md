@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 ### Fixed
 - QA login in CI: the prompt asked to read `process.env` from Playwright MCP code, which has no `process` in its sandbox. On kadeya-portal #649 the QA could not log in and failed. It now types the secret **names** with `browser_type`: Playwright MCP, started with `--secrets`, substitutes the real values and masks them in its responses.
+- CI review and QA: subagents run in the foreground (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` and an explicit instruction). On kadeya-portal #650 and #651, Claude launched the `reviewer` and `security-reviewer` subagents in the background, wrote "waiting for the subagents" and ended its turn: the one-shot session stopped there and nothing was posted, after about $1 of tokens each.
+- CI review: sibling context repos are cloned on the PR branch, then on the PR **base** branch (e.g. `develop`), then on the default branch. Before, a backend without the same branch was read on `main`, which missed changes already on `develop`.
 
 ## [0.3.4] - 2026-11-20
 

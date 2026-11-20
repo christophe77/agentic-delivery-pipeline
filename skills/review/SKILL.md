@@ -24,7 +24,7 @@ In CI, if neighboring repos are cloned into `.agentic-context/`, use them to che
 
 ## 2. Analyze in parallel
 
-Launch these subagents in the same message:
+Launch these subagents in the same message, in the foreground (in CI, a background subagent never reports back once you end your turn):
 - `reviewer`: bugs, edge cases, regressions, error handling, concurrency, obvious performance issues, consistency with nearby code. Push on the cases a diff hides: timeouts and unknown outcomes (a request that may have succeeded), retries and idempotency keys, state that survives a navigation, a user switch or a remount, money and quantity limits, malformed backend data.
 - `security-reviewer`: secrets, injections, authz/authn, sensitive data in logs, dependencies, IaC.
 

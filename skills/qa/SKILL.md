@@ -33,7 +33,7 @@ Test credentials come from the environment variables listed in `qa.credentials_e
 
 ## 2. Execute
 
-Delegate to the `qa-tester` subagent, one scenario at a time:
+Delegate to the `qa-tester` subagent, one scenario at a time, in the foreground (in CI, a background subagent never reports back once you end your turn):
 - navigate, act, check the expected result;
 - screenshot at each check;
 - record console errors and failed network requests (4xx/5xx);

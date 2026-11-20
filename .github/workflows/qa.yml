@@ -144,6 +144,8 @@ jobs:
         if: steps.config.outputs.skip != 'true'
         env:
           MCP_TIMEOUT: "120000"
+          # Background subagents never report back in a one-shot CI session.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"
           MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
           QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
           QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
@@ -160,6 +162,7 @@ jobs:
             ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR of this deployment.' || '' }}
             Test credentials: to log in, call browser_type (one field at a time) with the literal text QA_USER_EMAIL in the email field and QA_USER_PASSWORD in the password field. Playwright MCP was started with --secrets: it replaces these secret names with the real values when typing, and masks the values in its responses. You never see or need the values. Do not use process.env or browser_run_code for the login: the MCP sandbox has no process.
             Save every screenshot and evidence file under .agentic/runs/qa/ (the folder published as the run artifact) and write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
+            Run every subagent in the foreground (never in the background) and wait for its result before going on: the job stops as soon as you end your turn, so a background subagent never reports back.
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --model ${{ inputs.model }}
