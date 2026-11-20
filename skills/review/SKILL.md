@@ -38,6 +38,6 @@ Verification removes false positives, not small issues: a demonstrable minor fin
 
 ## 4. Report
 
-- **In CI** (variable `GITHUB_ACTIONS=true`): one inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
+- **In CI** (variable `GITHUB_ACTIONS=true`): nobody can answer a question, so never stop to ask; a missing ticket or criteria goes in the summary. One inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
 - **Locally**: the same summary in the chat, and offer to fix.
 - Never approve the PR and never merge: merging stays human.

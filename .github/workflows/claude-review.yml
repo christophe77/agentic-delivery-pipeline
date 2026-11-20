@@ -76,7 +76,12 @@ jobs:
             git -C "$dest" remote set-url origin "https://github.com/${repo}.git"
           done
 
+      - name: Review start
+        id: start
+        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - uses: anthropics/claude-code-action@v1
+        id: claude
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -86,8 +91,35 @@ jobs:
             comments, then a summary comment. Report minor findings too, with their severity. Do not merge or approve the PR.
             If the .agentic-context/ folder exists, it contains the workspace's sibling repos
             (read-only): use them to check shared contracts.
+            You run non-interactively: nobody can answer a question. Never stop to ask. If the Monday ticket
+            or its acceptance criteria cannot be read, say so in the summary and review the code anyway.
+            Always finish by posting the summary comment with gh pr comment, even when there are no findings.
           claude_args: >-
             --plugin-dir .agentic-toolkit
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max-turns }}
             --allowedTools "Read,Grep,Glob,Task,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment"
+
+      # The action hides Claude's output: keep the transcript to understand a silent run.
+      - name: Review transcript
+        if: always() && steps.claude.outputs.execution_file != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-review-transcript
+          path: ${{ steps.claude.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Review posted
+        if: always() && steps.claude.outcome == 'success' && steps.claude.outputs.skipped_due_to_workflow_validation_mismatch != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SINCE: ${{ steps.start.outputs.at }}
+        run: |
+          n=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments?since=${SINCE}" --jq '[.[] | select(.user.type == "Bot")] | length')
+          if [ "${n:-0}" -eq 0 ]; then
+            echo "::error::Claude finished without posting a review comment on PR #${PR}. See the claude-review-transcript artifact."
+            exit 1
+          fi
+          echo "Review comment posted on PR #${PR}."
