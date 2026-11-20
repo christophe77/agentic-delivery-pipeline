@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.7] - 2026-11-20
+
+### Added
+- `templates/workflows/qa-after-deploy.yml`: browser QA as a standalone workflow triggered by `workflow_run` when the project's own deploy workflow completes. It finds the merged PR (number, base, merge commit) and maps the base branch to the QA mode and GitHub environment. It is now the recommended setup for projects that keep their own deploy workflow (docs and `pipeline-init`). On kadeya-portal, the QA job appended to `deploy-dev.yml` was skipped after #651 added build variables to that file on `develop`: claude-code-action requires the calling workflow file to be identical on the default branch, and a `workflow_run` workflow always runs from there.
+- `qa.yml`: `pr-number` and `pr-base` inputs, for callers that are not `pull_request` events.
+
 ## [0.3.6] - 2026-11-20
 
 ### Fixed

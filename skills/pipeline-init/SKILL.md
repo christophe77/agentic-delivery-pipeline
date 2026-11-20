@@ -63,9 +63,9 @@ Use the Monday MCP tools to read the board (columns and statuses) rather than as
 
 ## 3. Copy the calling workflows
 
-Copy `templates/workflows/agentic-*.yml` into `.github/workflows/`. Replace `@v1` with the desired toolkit version, and set the `branches:` filters to the real branch names (`agentic-review.yml`: `git.base_branch`). Do not touch existing workflows, with one exception below; flag duplicates (an existing CI) and let the user choose.
+Copy `templates/workflows/agentic-*.yml` (except the `agentic-qa-job.yml` snippet) into `.github/workflows/`. Replace `@v1` with the desired toolkit version, and set the `branches:` filters to the real branch names (`agentic-review.yml`: `git.base_branch`). Do not touch existing workflows, with one exception below; flag duplicates (an existing CI) and let the user choose.
 
-**Existing deploy workflow kept**: do not copy `agentic-deploy.yml`. Instead, append the job from `templates/workflows/agentic-qa-job.yml` at the end of the existing deploy workflow (the only change to it): set `needs:` to its deploy job, and map its branches and GitHub environment names. Show the diff and get an explicit yes before writing it. In `agentic-review.yml`, keep only the `review` job.
+**Existing deploy workflow kept**: do not copy `agentic-deploy.yml`, and do not modify the existing deploy workflow. Instead, add `templates/workflows/qa-after-deploy.yml` as `.github/workflows/agentic-qa.yml`: set `workflows:` to the exact `name:` of the deploy workflow, and map its branches to QA modes and GitHub environment names. It runs on `workflow_run`, so it does not break when someone edits the deploy workflow (claude-code-action requires the calling workflow file to be identical on the default branch). It must be merged on the default branch to run. In `agentic-review.yml`, keep only the `review` job.
 
 ## 4. CLAUDE.md
 
