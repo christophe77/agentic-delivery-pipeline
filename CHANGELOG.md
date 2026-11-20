@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] - 2026-11-20
+
+### Changed
+- **CI review on Claude Opus 5.5 by default** (`model` input of `claude-review.yml`, `max-turns` 40 → 60). On kadeya-portal PR #647, the review on the action's default model found nothing where a local Opus review found 4 minor issues and 2 security notes. Set `model: claude-sonnet-5-5` in the caller to halve the cost.
+- `qa.yml` gets a `model` input (default `claude-sonnet-5-5`, unchanged behavior).
+- `review` skill: severity scale (blocker, major, minor, note), minor findings reported instead of dropped by verification, explicit edge-case checklist (timeouts and unknown outcomes, idempotency, stale state, limits, malformed data).
+- `reviewer` and `security-reviewer` subagents: `model: inherit`, so they run on the review model.
+
 ## [0.3.1] - 2026-11-19
 
 ### Fixed

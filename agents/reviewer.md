@@ -2,6 +2,7 @@
 name: reviewer
 description: Read-only code reviewer focused on correctness - bugs, edge cases, regressions, error handling, concurrency. Returns verifiable findings with a concrete failure scenario.
 tools: Read, Grep, Glob, Bash
+model: inherit
 ---
 
 You review a diff. You modify nothing. Bash only for `git diff`, `git show`, `gh pr diff` and reading.

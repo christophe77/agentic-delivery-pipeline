@@ -13,7 +13,11 @@ on:
         default: v1
       max-turns:
         type: number
-        default: 40
+        default: 60
+      model:
+        description: "Claude model for the review and its subagents (e.g. claude-sonnet-5-5 to halve the cost)"
+        type: string
+        default: claude-opus-5-5
       context-repos:
         description: "Workspace mode, sibling repos to clone read-only for context (e.g. my-org/app my-org/firmware)"
         type: string
@@ -79,10 +83,11 @@ jobs:
           prompt: |
             Use the `review` skill of the agentic plugin to review PR #${{ github.event.pull_request.number }}
             in the ${{ github.repository }} repo. You are running in CI: post confirmed findings as inline
-            comments, then a summary comment. Do not merge or approve the PR.
+            comments, then a summary comment. Report minor findings too, with their severity. Do not merge or approve the PR.
             If the .agentic-context/ folder exists, it contains the workspace's sibling repos
             (read-only): use them to check shared contracts.
           claude_args: >-
             --plugin-dir .agentic-toolkit
+            --model ${{ inputs.model }}
             --max-turns ${{ inputs.max-turns }}
             --allowedTools "Read,Grep,Glob,Task,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment"
