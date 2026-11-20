@@ -19,7 +19,7 @@ In CI, if neighboring repos are cloned into `.agentic-context/`, use them to che
 ## 1. Gather
 
 - Diff: `gh pr diff <n>` or `git diff <base>...HEAD`. PR description: `gh pr view <n>`.
-- Monday ticket: ID from the branch name or the `Monday: #id` footer. Read its acceptance criteria (Monday MCP if available; in CI without a Monday token, use the PR's "Acceptance criteria" section).
+- Monday ticket: in CI, the workflow has already fetched it into `.agentic/runs/monday-ticket.md` when the PR links one and a `MONDAY_API_TOKEN` is set: read that file first, before any analysis. Otherwise, ID from the PR description (Monday link, `Monday #id`, `MON-id`), the branch name or the `Monday: #id` footer. Read its acceptance criteria (Monday MCP if available; in CI without a Monday token, use the PR's "Acceptance criteria" section).
 - `CLAUDE.md` and `.agentic/pipeline.yml` for conventions.
 
 ## 2. Analyze in parallel
@@ -38,6 +38,6 @@ Verification removes false positives, not small issues: a demonstrable minor fin
 
 ## 4. Report
 
-- **In CI** (variable `GITHUB_ACTIONS=true`): one inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
+- **In CI** (variable `GITHUB_ACTIONS=true`): nobody can answer a question, so never stop to ask; a missing ticket or criteria goes in the summary. One inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
 - **Locally**: the same summary in the chat, and offer to fix.
 - Never approve the PR and never merge: merging stays human.
