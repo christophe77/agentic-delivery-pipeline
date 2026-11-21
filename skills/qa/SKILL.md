@@ -46,6 +46,8 @@ Delegate to the `qa-tester` subagent, one scenario at a time, in the foreground 
 | Scenario | Result | Evidence | Notes |
 Console / network errors:
 Limitations (not tested, missing data):
+
+QA_RESULT=PASS | QA_RESULT=FAIL   (in CI, the last line: the job verdict reads it)
 ```
 
 - PR: comment with the report (`gh pr comment`).

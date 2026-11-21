@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.8] - 2026-11-21
+
+### Fixed
+- QA verdict: when the report has no `QA_RESULT=` line, the PASS or FAIL at the end of its title (`## QA ...: PASS`) is used, with a warning. A report with neither fails with an explicit error. On kadeya-portal #650, all scenarios passed and the report title said PASS, but the job failed because the model forgot the last line.
+- `qa` skill: the report template ends with the `QA_RESULT=` line.
+
 ## [0.3.7] - 2026-11-20
 
 ### Added
