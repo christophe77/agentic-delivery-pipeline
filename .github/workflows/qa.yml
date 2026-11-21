@@ -209,4 +209,16 @@ jobs:
             exit 1
           fi
           cat .agentic/runs/qa/report.md >> "$GITHUB_STEP_SUMMARY"
-          grep -q "QA_RESULT=PASS" .agentic/runs/qa/report.md || { echo "::error::QA failed"; exit 1; }
+          # Verdict: the QA_RESULT line if present (last one wins), otherwise the PASS/FAIL
+          # at the end of the report title ("## QA ... : PASS"), which the model rarely forgets.
+          report=.agentic/runs/qa/report.md
+          result=$(grep -oE 'QA_RESULT=(PASS|FAIL)' "$report" | tail -1 | cut -d= -f2 || true)
+          if [ -z "$result" ]; then
+            result=$(grep -m1 -E '^#+ ' "$report" | grep -oE '(PASS|FAIL)[*_` ]*$' | grep -oE 'PASS|FAIL' || true)
+            [ -z "$result" ] || echo "::warning::No QA_RESULT line in the report: verdict taken from its title ($result)."
+          fi
+          case "$result" in
+            PASS) echo "QA passed." ;;
+            FAIL) echo "::error::QA failed"; exit 1 ;;
+            *) echo "::error::No verdict in the QA report (no QA_RESULT line, no PASS/FAIL in its title)."; exit 1 ;;
+          esac
