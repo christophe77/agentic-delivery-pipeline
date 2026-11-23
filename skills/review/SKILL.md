@@ -1,6 +1,6 @@
 ---
 name: review
-description: Code review of a PR or the current diff - correctness, security, coverage of the Monday ticket's acceptance criteria - with parallel subagents and verification of every finding. Posts inline comments in CI, reports locally.
+description: Code review of a PR or the current diff - correctness, security, coverage of the Monday ticket's acceptance criteria - with parallel subagents and verification of every finding. Posts one review comment in CI (inline comments optional), reports locally.
 argument-hint: "[PR number]"
 ---
 
@@ -38,6 +38,6 @@ Verification removes false positives, not small issues: a demonstrable minor fin
 
 ## 4. Report
 
-- **In CI** (variable `GITHUB_ACTIONS=true`): nobody can answer a question, so never stop to ask; a missing ticket or criteria goes in the summary. One inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
+- **In CI** (variable `GITHUB_ACTIONS=true`): nobody can answer a question, so never stop to ask; a missing ticket or criteria goes in the summary. Post **one** comment (`gh pr comment`): verdict (OK / changes requested), findings by severity, each with `file:line`, its failure scenario and a suggested fix, then criteria covered / not covered. Every comment sends an email to the PR participants, so no inline comments, unless the workflow asks for them (`inline-comments: true`): then one inline comment per confirmed finding before the summary.
 - **Locally**: the same summary in the chat, and offer to fix.
 - Never approve the PR and never merge: merging stays human.

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.9] - 2026-11-23
+
+### Changed
+- CI review posts **a single comment** by default: verdict, every finding with its severity, `file:line`, failure scenario and suggested fix, and the acceptance criteria. Every PR comment sends an email to the participants, and a review with 6 inline comments meant 7 emails. The new `inline-comments` input of `claude-review.yml` (default `false`) brings back one inline comment per finding; the inline comment tool is only allowed in that case.
+
 ## [0.3.8] - 2026-11-21
 
 ### Fixed

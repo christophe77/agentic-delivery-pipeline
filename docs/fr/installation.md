@@ -122,7 +122,7 @@ Idéalement, dev/staging et production sont dans des comptes AWS distincts. Le r
 
 Ces points dépendent de versions d'outils et n'ont pas encore tourné en conditions réelles :
 
-- [ ] `claude-code-action@v1` : chargement du plugin via `--plugin-dir` et outil de commentaire inline.
+- [ ] `claude-code-action@v1` : chargement du plugin via `--plugin-dir` et outil de commentaire inline (seulement avec `inline-comments: true`).
 - [ ] Résolution de `${MONDAY_API_TOKEN}` dans le fichier `--mcp-config` généré par `qa.yml`.
 - [ ] Installation du navigateur pour `@playwright/mcp` en CI (version de Playwright alignée).
 - [ ] `vars.AWS_ROLE_ARN` d'environnement lu depuis un workflow réutilisable d'un autre compte.
