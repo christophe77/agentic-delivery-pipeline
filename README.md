@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://docs.anthropic.com/en/docs/claude-code)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-reusable%20workflows-2088FF)](.github/workflows)
-[![Version](https://img.shields.io/badge/version-0.3.8-informational)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.9-informational)](CHANGELOG.md)
 
 English | [Français](README.fr.md)
 
@@ -48,7 +48,7 @@ Two long-lived branches, one per environment: `staging` receives the feature PRs
 | 1. Epic | `/agentic:epic <need>` | Reads the codebase, drafts context, goal, scope, acceptance criteria and risks, creates the epic in Monday | approve the epic |
 | 2. Tickets | `/agentic:tickets <epic id>` | Splits into vertical slices with Given/When/Then criteria, dependencies, test plan and QA scenarios | approve the breakdown |
 | 3. Implement | `/agentic:implement <ticket id>` | Branches from `staging`, writes code and tests, runs lint/test/build, opens the PR to `staging` linked to the ticket | |
-| 4. Review + QA dev | every push on a PR (CI) | Parallel correctness and security reviewers with inline comments; in parallel, deploys the PR to `dev` and runs the ticket's QA scenarios in a headless browser | **merge into `staging`** |
+| 4. Review + QA dev | every push on a PR (CI) | Parallel correctness and security reviewers, one GitHub review with inline comments; in parallel, deploys the PR to `dev` and runs the ticket's QA scenarios in a headless browser | **merge into `staging`** |
 | 5. Staging | push to `staging` | Deploys each package to AWS ECS, GitHub Releases or a custom command, using OIDC | |
 | 6. QA staging | after staging deploy (CI) | Runs the QA scenarios of the merged tickets on staging, posts evidence to the PRs and Monday | |
 | 7. Promote | `/agentic:release prepare` | Lists what is on `staging` and not on `main`, writes the release notes, opens the promotion PR `staging` → `main` | **merge into `main`** |
@@ -60,7 +60,7 @@ Two long-lived branches, one per environment: `staging` receives the feature PRs
 
 - **Claude Code plugin**: 7 skills (`pipeline-init`, `epic`, `tickets`, `implement`, `review`, `qa`, `release`) and 4 subagents (`planner`, `reviewer`, `security-reviewer`, `qa-tester`).
 - **Monday.com integration** through the Monday MCP server: epics, tickets, statuses and updates.
-- **AI code review in CI** with [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action): inline comments, verified findings only, never approves or merges.
+- **AI code review in CI** with [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action): one GitHub review per run (inline comments, a single notification), verified findings only, never approves or merges.
 - **Browser QA on three environments** with [Playwright MCP](https://github.com/microsoft/playwright-mcp) in CI (or Claude in Chrome locally): `dev` on every pull request, `staging` after merge, read-only smoke checks on `production` after release.
 - **Reusable GitHub Actions workflows**: CI matrix per package, secret scanning (gitleaks), review, QA, deploy.
 - **AWS deployment without access keys**: GitHub OIDC role (CloudFormation template included) for ECS, S3, CDK or any command.

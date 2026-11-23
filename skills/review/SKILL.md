@@ -1,6 +1,6 @@
 ---
 name: review
-description: Code review of a PR or the current diff - correctness, security, coverage of the Monday ticket's acceptance criteria - with parallel subagents and verification of every finding. Posts inline comments in CI, reports locally.
+description: Code review of a PR or the current diff - correctness, security, coverage of the Monday ticket's acceptance criteria - with parallel subagents and verification of every finding. Publishes one GitHub review in CI (inline comments, one notification), reports locally.
 argument-hint: "[PR number]"
 ---
 
@@ -38,6 +38,6 @@ Verification removes false positives, not small issues: a demonstrable minor fin
 
 ## 4. Report
 
-- **In CI** (variable `GITHUB_ACTIONS=true`): nobody can answer a question, so never stop to ask; a missing ticket or criteria goes in the summary. One inline comment per confirmed finding (the action's inline comment tool, or `gh`), then a summary comment: verdict (OK / changes requested), findings by severity, criteria covered / not covered.
+- **In CI** (variable `GITHUB_ACTIONS=true`): nobody can answer a question, so never stop to ask; a missing ticket or criteria goes in the summary. Do not post on the PR yourself: write `.agentic/runs/review.json` (`summary`: verdict OK / changes requested, one line per finding with its severity, criteria covered / not covered; `comments`: one entry per finding with `path`, `line` in the PR head, optional `start_line`, and a `body` with severity, failure scenario and suggested fix). The workflow publishes it as **one** GitHub review, which sends one notification: findings on diff lines appear inline, the others go into the summary with a link. Always write the file, even with no findings.
 - **Locally**: the same summary in the chat, and offer to fix.
 - Never approve the PR and never merge: merging stays human.

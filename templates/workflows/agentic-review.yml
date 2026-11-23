@@ -1,5 +1,5 @@
 # Copied by /agentic:pipeline-init. On every pull request to staging, in parallel:
-#   - Claude code review (inline comments)
+#   - Claude code review (one GitHub review with inline comments: one notification)
 #   - CI -> deploy the PR to the "dev" environment -> browser QA on dev
 # Both must be green before the human merge into staging.
 # The dev environment is shared: deploys are serialized per package and the last
