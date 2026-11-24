@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.10] - 2026-11-24
+
+### Fixed
+- `qa-after-deploy.yml` template: the `resolve` job gets `contents: read`. With `pull-requests: read` alone, reading the PR's `mergeCommit` fails with "Resource not accessible by integration", so the QA never started (kadeya-portal, Agentic QA #2).
+- Same template: the header explains that `workflows:` entries are filter patterns. On kadeya-portal, the deploy workflow name contains `+`, so Agentic QA never triggered until it was escaped (`\+`).
+
 ## [0.3.9] - 2026-11-23
 
 ### Changed
