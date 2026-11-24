@@ -8,7 +8,9 @@
 #   - developers can change the deploy workflow without breaking the QA.
 #
 # Adapt:
-#   - `workflows:` to the exact `name:` of the deploy workflow;
+#   - `workflows:` to the exact `name:` of the deploy workflow. Entries are filter
+#     patterns: escape `*`, `?`, `+`, `[`, `!` with a backslash, in single quotes
+#     (e.g. 'Deploy to S3 \+ CloudFront'), or the workflow never triggers;
 #   - the branch -> QA environment and GitHub environment mappings in "Deployed PR".
 name: Agentic QA
 
@@ -24,6 +26,9 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
+      # contents: read is needed for the PR's mergeCommit (GraphQL returns
+      # "Resource not accessible by integration" with pull-requests alone).
+      contents: read
       pull-requests: read
     outputs:
       number: ${{ steps.pr.outputs.number }}
