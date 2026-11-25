@@ -1,6 +1,6 @@
 {
   "name": "agentic",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Agentic delivery pipeline: Monday epics and tickets, development, code review, browser QA, GitHub and AWS deployment. Stack-agnostic (Node/NestJS, .NET, Go, Flutter, C++, monorepos) and multi-repo (workspace mode).",
   "author": {
     "name": "Christophe Bellec"
