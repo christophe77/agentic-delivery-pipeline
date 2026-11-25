@@ -40,7 +40,7 @@ If `.agentic/workspace.yml` exists (current folder or parents), the release is *
 
 ## close
 
-After a successful production deployment **and a green production QA** (`gh run list --branch <prod>` or the `agentic-qa` job of the deploy run of the promotion PR). If the production QA failed, do not close: report the failures on the promotion PR and in Monday, and suggest a fix (new ticket) or a rollback (redeploy the previous production commit).
+After a successful production deployment **and a green production QA** (`gh run list --branch <prod>` or the `agentic-qa` job of the deploy run of the promotion PR). If the production QA failed, do not close: report the failures on the promotion PR and in Monday, and suggest a fix (new ticket) or a rollback (redeploy the previous production commit). If it is BLOCKED (smoke checks could not run: account, data, environment), do not close either: report the "To unblock" list and re-run the QA once it is fixed.
 - delivered tickets to status `statuses.done`, Monday update with the version and the run link;
 - epic to `statuses.done` if all its tickets are;
 - publish the notes in the GitHub release if it exists.

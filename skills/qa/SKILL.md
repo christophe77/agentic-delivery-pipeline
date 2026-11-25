@@ -39,20 +39,39 @@ Delegate to the `qa-tester` subagent, one scenario at a time, in the foreground 
 - record console errors and failed network requests (4xx/5xx);
 - also test mobile width (375 px) for UI flows.
 
-## 3. Report
+## 3. Verdict
+
+Each scenario gets one result:
+- **PASS**: run to the end, every expected result checked;
+- **FAIL**: the application did something wrong (wrong result, error, 4xx/5xx it should not return). Retry once to rule out timing first;
+- **BLOCKED**: could not be run because of the environment, not the code: no test data the scenario needs (no record to open, empty list), the test account lacks the role or scope, a dependency is not deployed (backend, other repo), the environment is down, credentials are missing or rejected. Say exactly what is missing;
+- **NOT RUN (external effect)** or **NOT RUN (mutating)** in production: skipped by design, does not affect the verdict.
+
+Overall verdict, in this order:
+1. **FAIL** if at least one scenario failed (a defect was seen, even if others are blocked);
+2. **BLOCKED** if none failed but at least one scenario of the PR or ticket is blocked: its changes were not verified;
+3. **PASS** otherwise. A blocked permanent scenario alone (`qa.scenarios_dir`) does not block if every scenario of the PR or ticket passed: list it under "To unblock".
+
+Never turn a BLOCKED scenario into PASS by testing something nearby, and never report FAIL for missing data or access: a FAIL must point to a defect.
+
+## 4. Report
 
 ```
-## QA <ticket/PR> on <environment> (<url>): PASS | FAIL
+## QA <ticket/PR> on <environment> (<url>): PASS | FAIL | BLOCKED
 | Scenario | Result | Evidence | Notes |
 Console / network errors:
 Limitations (not tested, missing data):
+To unblock (BLOCKED only): what to set up, where, and for which scenario
+  (e.g. "dev: one app user with a funded wallet, visible to the QA account's workspace";
+   "QA account needs the GLOBAL Finance role"; "deploy common-backend#750 to dev first")
 
-QA_RESULT=PASS | QA_RESULT=FAIL   (in CI, the last line: the job verdict reads it)
+QA_RESULT=PASS | QA_RESULT=FAIL | QA_RESULT=BLOCKED   (in CI, the last line: the job verdict reads it)
 ```
 
 - PR: comment with the report (`gh pr comment`).
 - Monday: update on the ticket. Status:
   - when the QA starts, `statuses.qa_<environment>` if the board defines it (e.g. `qa_dev: Dev QA`, `qa_staging: STG QA`, `qa_production: Prod QA`);
   - on failure, `statuses.qa_failed` if defined, otherwise back to `statuses.in_progress`, with the failures;
+  - on BLOCKED, `statuses.qa_blocked` if defined, otherwise leave the status unchanged (the developer has nothing to fix), with the "To unblock" list;
   - on success on staging, `statuses.qa_passed`; on dev and production, leave the status for the next step.
 - Save the report and screenshots in `.agentic/runs/<date>-qa/` locally, and in `.agentic/runs/qa/` in CI (the only folder published as the run artifact). Both are ignored by git.

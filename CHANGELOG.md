@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.11] - 2026-11-25
+
+### Added
+- QA verdict **BLOCKED**, next to PASS and FAIL: a scenario of the PR or ticket could not be run because of the environment (no test data, test account without the role or scope, dependency not deployed, environment down), not because of a defect. On kadeya-portal #662, every PR scenario was "NOT RUN" because dev had no app user for the QA account, and the job reported FAIL although no defect was seen.
+  - `qa` skill and `qa-tester` subagent: per-scenario result PASS / FAIL / BLOCKED. Overall: FAIL if any defect, else BLOCKED if a PR or ticket scenario is blocked, else PASS. The report gets a "To unblock" section listing what to set up.
+  - Monday: on BLOCKED, `statuses.qa_blocked` if the board defines it, otherwise the status is left unchanged (nothing for the developer to fix).
+  - `qa.yml`: reads `QA_RESULT=BLOCKED` (or BLOCKED in the report title). The job fails by default, with a "QA blocked (not a defect)" annotation, so an unverified change is not taken for a passed QA. New input `blocked-fails: false` makes it a warning. New workflow output `result` (PASS, FAIL, BLOCKED).
+  - `release close`: a BLOCKED production QA does not close the release either.
+
 ## [0.3.10] - 2026-11-24
 
 ### Fixed

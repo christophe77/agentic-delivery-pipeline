@@ -49,6 +49,14 @@ on:
         description: "Claude model for the QA run"
         type: string
         default: claude-sonnet-5-5
+      blocked-fails:
+        description: "A BLOCKED verdict (scenarios not runnable: test data, account role, dependency) fails the job. false: warning only"
+        type: boolean
+        default: true
+    outputs:
+      result:
+        description: "QA verdict: PASS, FAIL, BLOCKED, or empty when skipped or no report"
+        value: ${{ jobs.qa.outputs.result }}
     secrets:
       ANTHROPIC_API_KEY:
         required: false
@@ -66,6 +74,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: ${{ inputs.github-environment || inputs.environment }}
+    outputs:
+      result: ${{ steps.verdict.outputs.result }}
     permissions:
       contents: read
       pull-requests: write
@@ -169,7 +179,7 @@ jobs:
             ${{ inputs.environment != 'production' && 'Dev and staging are test environments and you use a test account: exercise the mutating flows of the scenarios end to end (create, edit, delete, submit, adjust, refund), with test data and the payment provider''s test mode. A scenario whose main action is a write is not covered until that write has been submitted and its result checked. Skip only a step that would reach real people or real money (an email or notification to a real customer, a live payment), and report it as NOT RUN with the reason.' || '' }}
             ${{ inputs.environment == 'production' && 'PRODUCTION SMOKE QA, read-only: run only the scenarios in qa.production_scenarios_dir and non-mutating checks of the delivered tickets (pages load, key data visible). Never create, edit, delete, pay or send anything. Post the report on the promotion PR of this deployment.' || '' }}
             Test credentials: to log in, call browser_type (one field at a time) with the literal text QA_USER_EMAIL in the email field and QA_USER_PASSWORD in the password field. Playwright MCP was started with --secrets: it replaces these secret names with the real values when typing, and masks the values in its responses. You never see or need the values. Do not use process.env or browser_run_code for the login: the MCP sandbox has no process.
-            Save every screenshot and evidence file under .agentic/runs/qa/ (the folder published as the run artifact) and write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS" or "QA_RESULT=FAIL".
+            Save every screenshot and evidence file under .agentic/runs/qa/ (the folder published as the run artifact) and write the report to .agentic/runs/qa/report.md. End with the line "QA_RESULT=PASS", "QA_RESULT=FAIL" or "QA_RESULT=BLOCKED". BLOCKED means a scenario of the PR or ticket could not be run because of the environment (missing test data, the test account's role or scope, a dependency not deployed, environment down), not because of a defect: never report that as FAIL, and list what is missing under "To unblock".
             Run every subagent in the foreground (never in the background) and wait for its result before going on: the job stops as soon as you end your turn, so a background subagent never reports back.
           claude_args: >-
             --plugin-dir .agentic-toolkit
@@ -187,8 +197,10 @@ jobs:
           if-no-files-found: warn
 
       - name: Verdict
+        id: verdict
         if: always()
         env:
+          BLOCKED_FAILS: ${{ inputs.blocked-fails }}
           SKIPPED: ${{ steps.config.outputs.skip }}
           CLAUDE_OUTCOME: ${{ steps.claude.outcome }}
           CLAUDE_RAN: ${{ steps.claude.outputs.execution_file != '' }}
@@ -209,16 +221,27 @@ jobs:
             exit 1
           fi
           cat .agentic/runs/qa/report.md >> "$GITHUB_STEP_SUMMARY"
-          # Verdict: the QA_RESULT line if present (last one wins), otherwise the PASS/FAIL
+          # Verdict: the QA_RESULT line if present (last one wins), otherwise the PASS/FAIL/BLOCKED
           # at the end of the report title ("## QA ... : PASS"), which the model rarely forgets.
           report=.agentic/runs/qa/report.md
-          result=$(grep -oE 'QA_RESULT=(PASS|FAIL)' "$report" | tail -1 | cut -d= -f2 || true)
+          result=$(grep -oE 'QA_RESULT=(PASS|FAIL|BLOCKED)' "$report" | tail -1 | cut -d= -f2 || true)
           if [ -z "$result" ]; then
-            result=$(grep -m1 -E '^#+ ' "$report" | grep -oE '(PASS|FAIL)[*_` ]*$' | grep -oE 'PASS|FAIL' || true)
+            result=$(grep -m1 -E '^#+ ' "$report" | grep -oE '(PASS|FAIL|BLOCKED)[*_` ]*$' | grep -oE 'PASS|FAIL|BLOCKED' || true)
             [ -z "$result" ] || echo "::warning::No QA_RESULT line in the report: verdict taken from its title ($result)."
           fi
+          echo "result=$result" >> "$GITHUB_OUTPUT"
           case "$result" in
             PASS) echo "QA passed." ;;
-            FAIL) echo "::error::QA failed"; exit 1 ;;
-            *) echo "::error::No verdict in the QA report (no QA_RESULT line, no PASS/FAIL in its title)."; exit 1 ;;
+            FAIL) echo "::error title=QA failed::A defect was found. See the report in the run summary."; exit 1 ;;
+            BLOCKED)
+              # Not a defect: the environment could not run the PR's scenarios (test data, account
+              # role, dependency not deployed). Red by default so an unverified change is not
+              # mistaken for a passed QA; blocked-fails: false turns it into a warning.
+              if [ "$BLOCKED_FAILS" = "false" ]; then
+                echo "::warning title=QA blocked::Not a defect: the PR's scenarios could not be run on $TARGET_ENV. See \"To unblock\" in the report."
+              else
+                echo "::error title=QA blocked (not a defect)::The PR's scenarios could not be run on $TARGET_ENV (test data, account role or dependency). See \"To unblock\" in the report, fix the environment, then re-run this job."
+                exit 1
+              fi ;;
+            *) echo "::error::No verdict in the QA report (no QA_RESULT line, no PASS/FAIL/BLOCKED in its title)."; exit 1 ;;
           esac

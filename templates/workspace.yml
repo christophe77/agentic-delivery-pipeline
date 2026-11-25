@@ -18,6 +18,7 @@ monday:
     in_progress: Working on it
     review: In review
     qa_passed: QA passed
+    # qa_blocked: QA blocked   # optional: QA could not run (test data, account role, dependency)
     done: Done
 
 git:
